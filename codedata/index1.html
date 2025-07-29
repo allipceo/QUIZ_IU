@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습 앱 (분리형)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f3f4f6;
+        }
+        .selected-btn {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            border: 2px solid #1d4ed8 !important;
+        }
+        .correct-btn {
+            background-color: #10b981 !important;
+            color: white !important;
+            border: 2px solid #059669 !important;
+        }
+        .incorrect-btn {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border: 2px solid #dc2626 !important;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div id="app-container" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl border border-gray-200">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습 앱 (분리형)</h1>
+
+        <!-- 로딩 상태 -->
+        <div id="loading-area" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">CSV 데이터를 불러오는 중...</p>
+            <p id="loading-status" class="text-sm text-gray-500 mt-2"></p>
+        </div>
+
+        <!-- 메인 앱 영역 (로딩 완료 후 표시) -->
+        <div id="main-app" class="hidden">
+            <!-- 진행 상황 표시 -->
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>문제 <span id="current-number">1</span> / <span id="total-number">0</span></span>
+                    <span>정답률: <span id="accuracy">0</span>%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 문제 영역 -->
+            <div class="mb-6">
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <div class="text-sm text-gray-500 mb-2">
+                        <span id="question-type">진위형</span> | 
+                        <span id="question-layer">대분류</span> |
+                        <span id="question-qcode">QCODE</span>
+                    </div>
+                    <!-- 문제 내용을 파싱 없이 그대로 표시 -->
+                    <div id="question-text" class="text-lg font-medium text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        문제를 불러오는 중...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 답변 버튼 영역 -->
+            <div id="answer-buttons" class="mb-6">
+                <!-- 진위형 버튼 -->
+                <div id="true-false-buttons" class="hidden flex gap-4">
+                    <button id="btn-true" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="O">
+                        O (맞다)
+                    </button>
+                    <button id="btn-false" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">
+                        X (틀리다)
+                    </button>
+                </div>
+                
+                <!-- 선택형 버튼 -->
+                <div id="choice-buttons" class="hidden grid grid-cols-2 gap-3">
+                    <button id="btn-1" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="1">
+                        1번
+                    </button>
+                    <button id="btn-2" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="2">
+                        2번
+                    </button>
+                    <button id="btn-3" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="3">
+                        3번
+                    </button>
+                    <button id="btn-4" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="4">
+                        4번
+                    </button>
+                </div>
+            </div>
+
+            <!-- 결과 표시 영역 -->
+            <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
+                <div id="result-message" class="text-lg font-bold mb-2"></div>
+                <div id="explanation-area" class="text-sm text-gray-600 bg-gray-50 p-3 rounded border"></div>
+            </div>
+
+            <!-- 컨트롤 버튼 -->
+            <div class="flex justify-between items-center">
+                <button id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-200">
+                    이전 문제
+                </button>
+                
+                <div class="flex gap-3">
+                    <button id="submit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                        정답 확인
+                    </button>
+                    <button id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                        다음 문제
+                    </button>
+                </div>
+            </div>
+
+            <!-- 통계 정보 -->
+            <div class="mt-6 bg-gray-50 p-4 rounded-lg text-sm">
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <div class="font-bold text-gray-800" id="total-answered">0</div>
+                        <div class="text-gray-600">푼 문제</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-green-600" id="total-correct">0</div>
+                        <div class="text-gray-600">정답</div>
+                    </div>
+                    <div>
+                        <div class="font-bold text-red-600" id="total-incorrect">0</div>
+                        <div class="text-gray-600">오답</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // 전역 변수
+        // ========================================
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let selectedAnswer = null;
+        let isAnswered = false;
+        let stats = {
+            totalAnswered: 0,
+            correctCount: 0,
+            incorrectCount: 0
+        };
+
+        // ========================================
+        // DOM 요소
+        // ========================================
+        const loadingArea = document.getElementById('loading-area');
+        const loadingStatus = document.getElementById('loading-status');
+        const mainApp = document.getElementById('main-app');
+        const currentNumberElem = document.getElementById('current-number');
+        const totalNumberElem = document.getElementById('total-number');
+        const accuracyElem = document.getElementById('accuracy');
+        const progressBarElem = document.getElementById('progress-bar');
+        const questionTypeElem = document.getElementById('question-type');
+        const questionLayerElem = document.getElementById('question-layer');
+        const questionQcodeElem = document.getElementById('question-qcode');
+        const questionTextElem = document.getElementById('question-text');
+        const trueFalseButtons = document.getElementById('true-false-buttons');
+        const choiceButtons = document.getElementById('choice-buttons');
+        const resultArea = document.getElementById('result-area');
+        const resultMessage = document.getElementById('result-message');
+        const explanationArea = document.getElementById('explanation-area');
+        const prevBtn = document.getElementById('prev-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const totalAnsweredElem = document.getElementById('total-answered');
+        const totalCorrectElem = document.getElementById('total-correct');
+        const totalIncorrectElem = document.getElementById('total-incorrect');
+
+        // ========================================
+        // CSV 데이터 로딩 함수
+        // ========================================
+        async function loadCSVData() {
+            try {
+                loadingStatus.textContent = 'ins_master_db.csv 파일을 불러오는 중...';
+                
+                const response = await fetch('ins_master_db.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                loadingStatus.textContent = 'CSV 데이터를 파싱하는 중...';
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                console.warn('CSV 파싱 경고:', results.errors);
+                            }
+                            
+                            // 인스교재 문제만 필터링 (index.html과 동일하게)
+                            const validQuestions = results.data.filter(row => 
+                                row.SOURCE === '인스교재' && 
+                                row.QCODE && 
+                                row.QUESTION && 
+                                row.ANSWER
+                            );
+                            
+                            loadingStatus.textContent = `${validQuestions.length}개 문제 로드 완료!`;
+                            resolve(validQuestions);
+                        },
+                        error: function(error) {
+                            reject(error);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                loadingStatus.textContent = `데이터 로딩 실패: ${error.message}`;
+                console.error('CSV 로딩 오류:', error);
+                throw error;
+            }
+        }
+
+        // ========================================
+        // 핵심 함수들
+        // ========================================
+
+        // 문제 표시 함수 (파싱 없이 그대로 표시)
+        function displayQuestion() {
+            const question = questions[currentQuestionIndex];
+            
+            // 문제 정보 업데이트
+            currentNumberElem.textContent = currentQuestionIndex + 1;
+            totalNumberElem.textContent = questions.length;
+            questionTypeElem.textContent = question.TYPE || '진위형';
+            questionLayerElem.textContent = question.LAYER1 || '일반';
+            questionQcodeElem.textContent = question.QCODE || 'N/A';
+            
+            // 문제 내용을 파싱 없이 그대로 표시 (조대표님 요구사항)
+            questionTextElem.textContent = question.QUESTION || '문제 내용이 없습니다.';
+            
+            // 문제 유형에 따라 버튼 표시
+            if (question.TYPE === '진위형') {
+                trueFalseButtons.classList.remove('hidden');
+                choiceButtons.classList.add('hidden');
+            } else if (question.TYPE === '선택형') {
+                trueFalseButtons.classList.add('hidden'); 
+                choiceButtons.classList.remove('hidden');
+            } else {
+                // 유형이 명확하지 않은 경우 기본값으로 진위형 표시
+                trueFalseButtons.classList.remove('hidden');
+                choiceButtons.classList.add('hidden');
+            }
+            
+            // 상태 초기화
+            selectedAnswer = null;
+            isAnswered = false;
+            resultArea.classList.add('hidden');
+            submitBtn.style.display = 'inline-block';
+            
+            // 모든 버튼 스타일 초기화
+            resetButtonStyles();
+            
+            // 진행률 업데이트
+            updateProgress();
+            
+            // 버튼 상태 업데이트
+            updateButtonStates();
+        }
+
+        // 답안 선택 함수
+        function selectAnswer(answer) {
+            if (isAnswered) return;
+            
+            selectedAnswer = answer;
+            
+            // 모든 버튼 스타일 초기화
+            resetButtonStyles();
+            
+            // 선택된 버튼 하이라이트
+            const buttons = document.querySelectorAll('[data-answer]');
+            buttons.forEach(btn => {
+                if (btn.dataset.answer === answer) {
+                    btn.classList.add('selected-btn');
+                }
+            });
+        }
+
+        // 정답 확인 함수
+        function checkAnswer() {
+            if (!selectedAnswer || isAnswered) return;
+            
+            const question = questions[currentQuestionIndex];
+            const correctAnswer = (question.ANSWER || '').trim();
+            const isCorrect = selectedAnswer === correctAnswer;
+            
+            isAnswered = true;
+            stats.totalAnswered++;
+            
+            if (isCorrect) {
+                stats.correctCount++;
+                resultMessage.textContent = '정답입니다! 🎉';
+                resultMessage.className = 'text-lg font-bold mb-2 text-green-600';
+            } else {
+                stats.incorrectCount++;
+                resultMessage.textContent = `오답입니다. 정답은 "${correctAnswer}"입니다. 😔`;
+                resultMessage.className = 'text-lg font-bold mb-2 text-red-600';
+            }
+            
+            // 해설 표시
+            explanationArea.textContent = question.EXPLAIN || '해설이 없습니다.';
+            
+            // 결과 영역 표시
+            resultArea.classList.remove('hidden');
+            submitBtn.style.display = 'none';
+            
+            // 버튼 색상 업데이트
+            updateAnswerButtonColors(correctAnswer);
+            
+            // 통계 업데이트
+            updateStats();
+        }
+
+        // 답안 버튼 색상 업데이트
+        function updateAnswerButtonColors(correctAnswer) {
+            const buttons = document.querySelectorAll('[data-answer]');
+            buttons.forEach(btn => {
+                const btnAnswer = btn.dataset.answer;
+                btn.classList.remove('selected-btn');
+                
+                if (btnAnswer === correctAnswer) {
+                    btn.classList.add('correct-btn');
+                } else if (btnAnswer === selectedAnswer) {
+                    btn.classList.add('incorrect-btn');
+                }
+            });
+        }
+
+        // 버튼 스타일 초기화
+        function resetButtonStyles() {
+            const buttons = document.querySelectorAll('[data-answer]');
+            buttons.forEach(btn => {
+                btn.classList.remove('selected-btn', 'correct-btn', 'incorrect-btn');
+            });
+        }
+
+        // 진행률 업데이트
+        function updateProgress() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            progressBarElem.style.width = progress + '%';
+        }
+
+        // 통계 업데이트
+        function updateStats() {
+            totalAnsweredElem.textContent = stats.totalAnswered;
+            totalCorrectElem.textContent = stats.correctCount;
+            totalIncorrectElem.textContent = stats.incorrectCount;
+            
+            const accuracy = stats.totalAnswered > 0 ? 
+                Math.round((stats.correctCount / stats.totalAnswered) * 100) : 0;
+            accuracyElem.textContent = accuracy;
+        }
+
+        // 버튼 상태 업데이트
+        function updateButtonStates() {
+            prevBtn.disabled = currentQuestionIndex === 0;
+            nextBtn.disabled = currentQuestionIndex === questions.length - 1;
+            
+            prevBtn.style.opacity = prevBtn.disabled ? '0.5' : '1';
+            nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+        }
+
+        // 이전 문제
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        // 다음 문제
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        }
+
+        // ========================================
+        // 이벤트 리스너
+        // ========================================
+
+        // 진위형 버튼 이벤트
+        document.getElementById('btn-true').addEventListener('click', () => selectAnswer('O'));
+        document.getElementById('btn-false').addEventListener('click', () => selectAnswer('X'));
+
+        // 선택형 버튼 이벤트
+        document.getElementById('btn-1').addEventListener('click', () => selectAnswer('1'));
+        document.getElementById('btn-2').addEventListener('click', () => selectAnswer('2'));
+        document.getElementById('btn-3').addEventListener('click', () => selectAnswer('3'));
+        document.getElementById('btn-4').addEventListener('click', () => selectAnswer('4'));
+
+        // 컨트롤 버튼 이벤트
+        prevBtn.addEventListener('click', prevQuestion);
+        submitBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', nextQuestion);
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (isAnswered) return;
+            
+            const question = questions[currentQuestionIndex];
+            
+            if (question && question.TYPE === '진위형') {
+                if (e.key === 'o' || e.key === 'O') selectAnswer('O');
+                if (e.key === 'x' || e.key === 'X') selectAnswer('X');
+            } else if (question && question.TYPE === '선택형') {
+                if (e.key >= '1' && e.key <= '4') selectAnswer(e.key);
+            }
+            
+            if (e.key === 'Enter' && selectedAnswer) checkAnswer();
+            if (e.key === 'ArrowLeft') prevQuestion();
+            if (e.key === 'ArrowRight') nextQuestion();
+        });
+
+        // ========================================
+        // 앱 초기화
+        // ========================================
+        async function initApp() {
+            try {
+                // CSV 데이터 로딩
+                questions = await loadCSVData();
+                
+                if (questions.length === 0) {
+                    throw new Error('유효한 문제가 없습니다.');
+                }
+                
+                console.log(`AICU 퀴즈앱 로드 완료: ${questions.length}개 문제`);
+                
+                // 로딩 화면 숨기고 메인 앱 표시
+                loadingArea.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                
+                // 첫 번째 문제 표시
+                displayQuestion();
+                updateStats();
+                
+            } catch (error) {
+                console.error('앱 초기화 오류:', error);
+                loadingStatus.innerHTML = `
+                    <span class="text-red-600">❌ 앱 로딩 실패</span><br>
+                    <span class="text-sm">${error.message}</span><br>
+                    <span class="text-xs text-gray-500 mt-2">
+                        ins_master_db.csv 파일이 같은 폴더에 있는지 확인하고<br>
+                        웹서버(Live Server 등)에서 실행해주세요.
+                    </span>
+                `;
+            }
+        }
+
+        // 앱 시작
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>

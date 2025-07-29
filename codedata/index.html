@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU 학습앱 - 전체 (789문제)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .question-container { min-height: 200px; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">AICU 학습앱 - 전체 (789문제)</h1>
+        
+        <!-- 로딩 상태 -->
+        <div id="loading-area" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p id="loading-status" class="text-gray-600">ins_789_final_dev.csv 파일을 불러오는 중...</p>
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div id="loading-progress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- 진행 상황 -->
+        <div id="progress-area" class="hidden bg-white rounded-lg shadow p-4 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">진행률</span>
+                <span id="progress-text" class="text-sm font-medium">1 / 789</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0.1%"></div>
+            </div>
+            </div>
+
+        <!-- 문제 영역 -->
+        <div id="quiz-area" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span id="question-type" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">진위형</span>
+                    <span id="question-code" class="text-sm text-gray-500">ABANK-0001</span>
+                </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">문제</h2>
+                    <div class="text-xs text-gray-500">
+                        <span id="layer-info">06재산보험 > 화재보험</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question-container mb-6">
+                <p id="question-text" class="text-gray-800 leading-relaxed whitespace-pre-wrap">문제를 불러오는 중...</p>
+            </div>
+
+            <!-- 진위형 답안 -->
+            <div id="true-false-buttons" class="hidden grid grid-cols-2 gap-4 mb-6">
+                <button onclick="selectAnswer('O')" class="answer-btn bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="O">O (맞다)</button>
+                <button onclick="selectAnswer('X')" class="answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200" data-answer="X">X (틀리다)</button>
+            </div>
+
+            <!-- 선택형 답안 -->
+            <div id="choice-buttons" class="hidden space-y-3 mb-6">
+                <button onclick="selectAnswer('1')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="1">1번</button>
+                <button onclick="selectAnswer('2')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="2">2번</button>
+                <button onclick="selectAnswer('3')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="3">3번</button>
+                <button onclick="selectAnswer('4')" class="answer-btn w-full text-left bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 px-4 rounded-lg transition duration-200" data-answer="4">4번</button>
+            </div>
+
+            <!-- 결과 표시 -->
+            <div id="result-area" class="hidden mb-6 p-4 rounded-lg">
+                <p id="result-text" class="font-bold text-lg mb-2"></p>
+                <p id="correct-answer" class="text-sm text-gray-600"></p>
+                <div id="explanation-area" class="mt-3 p-3 bg-gray-50 rounded border hidden">
+                    <p class="text-sm text-gray-700" id="explanation-text"></p>
+                </div>
+            </div>
+
+            <!-- 컨트롤 버튼 -->
+            <div class="flex justify-between">
+                <button onclick="prevQuestion()" id="prev-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-200">이전</button>
+                <button onclick="checkAnswer()" id="check-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">정답 확인</button>
+                <button onclick="nextQuestion()" id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">다음</button>
+            </div>
+            
+            <!-- 빠른 이동 -->
+            <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                <button onclick="jumpToRandom()" class="bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded">랜덤 문제</button>
+                <button onclick="jumpToQuestion()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm py-1 px-3 rounded">문제 번호로 이동</button>
+                <button onclick="showStats()" class="bg-gray-500 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded">상세 통계</button>
+            </div>
+        </div>
+
+        <!-- 통계 -->
+        <div id="stats-area" class="hidden bg-white rounded-lg shadow p-4">
+            <h3 class="font-bold mb-2">학습 통계</h3>
+            <div class="grid grid-cols-4 gap-4 text-center">
+                <div>
+                    <div id="total-answered" class="text-2xl font-bold text-blue-600">0</div>
+                    <div class="text-sm text-gray-600">푼 문제</div>
+                </div>
+                <div>
+                    <div id="correct-count" class="text-2xl font-bold text-green-600">0</div>
+                    <div class="text-sm text-gray-600">정답</div>
+                </div>
+                <div>
+                    <div id="accuracy" class="text-2xl font-bold text-purple-600">0%</div>
+                    <div class="text-sm text-gray-600">정답률</div>
+                </div>
+                <div>
+                    <div id="remaining" class="text-2xl font-bold text-orange-600">789</div>
+                    <div class="text-sm text-gray-600">남은 문제</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 파일 정보 -->
+        <div class="mt-4 text-center text-sm text-gray-500">
+            <p>데이터 소스: <span id="data-source">ins_789_final_dev.csv</span></p>
+            <p>로드된 문제 수: <span id="loaded-count">0</span>개</p>
+            <p class="mt-2 text-xs">🌐 GitHub Pages 또는 로컬 웹서버에서 완벽 동작</p>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let questions = [];
+        let currentQuestionIndex = 0; 
+        let selectedAnswer = null;
+        let answered = false;
+        let stats = {
+            totalAnswered: 0,
+            correctCount: 0
+        };
+
+        // CSV 파일 로딩 함수 (789개 전체)
+        async function loadCSVData() {
+            const loadingStatus = document.getElementById('loading-status');
+            const loadingProgress = document.getElementById('loading-progress');
+            
+            try {
+                loadingStatus.textContent = "ins_789_final_dev.csv 파일 다운로드 중...";
+                loadingProgress.style.width = "10%";
+                
+                // 실제 파일명: ins_789_final_dev.csv
+                const response = await fetch('ins_789_final_dev.csv');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                loadingStatus.textContent = "대용량 CSV 파일 파싱 중... (잠시만 기다려 주세요)";
+                loadingProgress.style.width = "50%";
+                
+                const csvContent = await response.text();
+                
+                loadingStatus.textContent = "789개 문제 데이터 처리 중...";
+                loadingProgress.style.width = "80%";
+                
+                // PapaParse로 CSV 파싱 (대용량 최적화)
+                const parsed = Papa.parse(csvContent, {
+                    header: true,
+                    dynamicTyping: false,
+                    skipEmptyLines: true,
+                    delimiter: ',',
+                    quoteChar: '"',
+                    fastMode: true // 대용량 파일 최적화
+                });
+                
+                if (parsed.errors.length > 0) {
+                    console.warn('CSV 파싱 경고:', parsed.errors.slice(0, 5)); // 처음 5개만 표시
+                }
+                
+                // 인스교재 문제만 필터링 및 유효성 검사
+                questions = parsed.data.filter(row => 
+                    row.SOURCE === '인스교재' && 
+                    row.QCODE && 
+                    row.QUESTION && 
+                    row.ANSWER
+                );
+                
+                loadingStatus.textContent = `${questions.length}개 인스교재 문제 로드 완료!`;
+                loadingProgress.style.width = "100%";
+                
+                // UI 업데이트
+                document.getElementById('loaded-count').textContent = questions.length;
+                document.getElementById('progress-text').textContent = `1 / ${questions.length}`;
+                document.getElementById('remaining').textContent = questions.length;
+                
+                // 로딩 완료 후 앱 시작
+                setTimeout(startQuiz, 1000);
+                
+            } catch (error) {
+                console.error('CSV 로딩 오류:', error);
+                loadingStatus.innerHTML = `
+                    <span class="text-red-600 font-bold">CSV 로딩 실패: ${error.message}</span><br>
+                    <span class="text-sm mt-2">해결 방법:</span><br>
+                    <span class="text-sm">1. ins_789_final_dev.csv 파일이 같은 폴더에 있는지 확인</span><br>
+                    <span class="text-sm">2. GitHub Pages에서 실행 (권장)</span><br>
+                    <span class="text-sm">3. 로컬 웹서버 사용 (python -m http.server)</span>
+                `;
+                loadingProgress.style.width = "0%";
+            }
+        }
+
+        // 퀴즈 시작
+        function startQuiz() {
+            document.getElementById('loading-area').classList.add('hidden');
+            document.getElementById('progress-area').classList.remove('hidden');
+            document.getElementById('quiz-area').classList.remove('hidden');
+            document.getElementById('stats-area').classList.remove('hidden');
+            
+            displayQuestion();
+            updateStats();
+        }
+
+        // 문제 표시
+        function displayQuestion() {
+            if (questions.length === 0) {
+                document.getElementById('question-text').textContent = "문제를 불러올 수 없습니다.";
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            
+            // 문제 정보 업데이트
+            document.getElementById('question-type').textContent = question.TYPE;
+            document.getElementById('question-code').textContent = question.QCODE;
+            document.getElementById('question-text').textContent = question.QUESTION;
+            
+            // 분류 정보 표시
+            document.getElementById('layer-info').textContent = `${question.LAYER1} > ${question.LAYER2}`;
+            
+            // 진행률 업데이트
+            document.getElementById('progress-text').textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
+            document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
+            
+            // 답안 버튼 표시/숨김
+            if (question.TYPE === '진위형') {
+                document.getElementById('true-false-buttons').classList.remove('hidden');
+                document.getElementById('choice-buttons').classList.add('hidden');
+            } else {
+                document.getElementById('true-false-buttons').classList.add('hidden');
+                document.getElementById('choice-buttons').classList.remove('hidden');
+            }
+            
+            // 상태 초기화
+            selectedAnswer = null;
+            answered = false;
+            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('explanation-area').classList.add('hidden');
+            document.getElementById('check-btn').classList.remove('hidden');
+            
+            // 버튼 스타일 초기화
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-200', 'border-blue-500', 'border-2', 'bg-green-300', 'bg-red-300');
+                btn.disabled = false;
+            });
+            
+            // 이전/다음 버튼 상태
+            document.getElementById('prev-btn').disabled = currentQuestionIndex === 0;
+            document.getElementById('next-btn').style.display = answered ? 'block' : 'none';
+        }
+
+        // 답안 선택
+        function selectAnswer(answer) {
+            if (answered) return;
+            
+            selectedAnswer = answer;
+            
+            // 모든 버튼 스타일 초기화
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-200', 'border-blue-500', 'border-2');
+            });
+            
+            // 선택된 버튼 강조
+            document.querySelector(`[data-answer="${answer}"]`).classList.add('bg-blue-200', 'border-blue-500', 'border-2');
+        }
+
+        // 정답 확인
+        function checkAnswer() {
+            if (!selectedAnswer || answered) return;
+            
+            const question = questions[currentQuestionIndex];
+            const isCorrect = selectedAnswer === question.ANSWER;
+            
+            answered = true;
+            stats.totalAnswered++;
+            if (isCorrect) stats.correctCount++;
+            
+            // 결과 표시
+            const resultArea = document.getElementById('result-area');
+            const resultText = document.getElementById('result-text');
+            const correctAnswerText = document.getElementById('correct-answer');
+
+            if (isCorrect) { 
+                resultText.textContent = '정답입니다! 🎉';
+                resultText.className = 'font-bold text-lg mb-2 text-green-600';
+                resultArea.className = 'mb-6 p-4 rounded-lg bg-green-50 border border-green-200';
+            } else {
+                resultText.textContent = '오답입니다 😔';
+                resultText.className = 'font-bold text-lg mb-2 text-red-600';
+                resultArea.className = 'mb-6 p-4 rounded-lg bg-red-50 border border-red-200';
+                correctAnswerText.textContent = `정답: ${question.ANSWER}`;
+            }
+            
+            // 해설 표시 (있는 경우)
+            if (question.EXPLAIN && question.EXPLAIN.trim() !== '') {
+                document.getElementById('explanation-text').textContent = question.EXPLAIN;
+                document.getElementById('explanation-area').classList.remove('hidden');
+            }
+            
+            resultArea.classList.remove('hidden');
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').style.display = 'block';
+            
+            // 정답 표시
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.disabled = true;
+                if (btn.dataset.answer === question.ANSWER) {
+                    btn.classList.add('bg-green-300');
+                } else if (btn.dataset.answer === selectedAnswer && selectedAnswer !== question.ANSWER) {
+                    btn.classList.add('bg-red-300');
+                }
+            });
+            
+            updateStats();
+        }
+
+        // 다음 문제
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                alert('모든 789개 문제를 완료했습니다! 🎉🎉🎉');
+            }
+        }
+
+        // 이전 문제
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        // 랜덤 문제로 이동
+        function jumpToRandom() {
+            currentQuestionIndex = Math.floor(Math.random() * questions.length);
+            displayQuestion();
+        }
+
+        // 문제 번호로 이동
+        function jumpToQuestion() {
+            const questionNum = prompt(`문제 번호를 입력하세요 (1-${questions.length}):`);
+            if (questionNum) {
+                const num = parseInt(questionNum) - 1;
+                if (num >= 0 && num < questions.length) {
+                    currentQuestionIndex = num;
+                    displayQuestion();
+                } else {
+                    alert('올바른 문제 번호를 입력해주세요.');
+                }
+            }
+        }
+
+        // 상세 통계 표시
+        function showStats() {
+            const remaining = questions.length - stats.totalAnswered;
+            const accuracy = stats.totalAnswered > 0 ? Math.round((stats.correctCount / stats.totalAnswered) * 100) : 0;
+            
+            alert(`상세 통계\n총 문제: ${questions.length}개\n푼 문제: ${stats.totalAnswered}개\n정답: ${stats.correctCount}개\n오답: ${stats.totalAnswered - stats.correctCount}개\n정답률: ${accuracy}%\n남은 문제: ${remaining}개`);
+        }
+
+        // 통계 업데이트
+        function updateStats() {
+            document.getElementById('total-answered').textContent = stats.totalAnswered;
+            document.getElementById('correct-count').textContent = stats.correctCount;
+            const accuracy = stats.totalAnswered > 0 ? Math.round((stats.correctCount / stats.totalAnswered) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            document.getElementById('remaining').textContent = questions.length - stats.totalAnswered;
+        }
+
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') prevQuestion();
+            if (e.key === 'ArrowRight') nextQuestion();
+            if (e.key === 'Enter') checkAnswer();
+            if (e.key === '1') selectAnswer('1');
+            if (e.key === '2') selectAnswer('2');
+            if (e.key === '3') selectAnswer('3');
+            if (e.key === '4') selectAnswer('4');
+            if (e.key === 'o' || e.key === 'O') selectAnswer('O');
+            if (e.key === 'x' || e.key === 'X') selectAnswer('X');
+            if (e.key === 'r' || e.key === 'R') jumpToRandom();
+        });
+
+        // 페이지 로드 시 CSV 데이터 로딩 시작
+        window.addEventListener('load', loadCSVData);
+    </script>
+</body>
+</html>

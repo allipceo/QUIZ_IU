@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU QUIZ 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 상단 헤더 -->
+    <div class="bg-white shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-blue-700">ACIU QUIZ 앱</h1>
+                    <span class="text-sm text-gray-600" id="current-mode">모드 선택</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <span id="user-info">사용자: 조대표님</span> | 
+                        <span id="exam-dday">D-90일</span>
+                    </div>
+                    <div class="text-sm text-gray-600" id="current-time"></div>
+                    <button onclick="ACIUApp.ui.showSettingsModal()" class="text-gray-600 hover:text-blue-600">
+                        ⚙️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- 오늘의 명언 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="text-center">
+                <p class="text-lg text-gray-700 italic" id="quote-of-day">
+                    "학습은 가장 좋은 투자입니다."
+                </p>
+            </div>
+        </div>
+
+        <!-- 보유 문제수 현황 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">보유 문제수 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="ins-questions">0</div>
+                    <div class="text-sm text-gray-600">인스교재</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="exam-questions">0</div>
+                    <div class="text-sm text-gray-600">보험중개사시험</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600" id="total-questions">0</div>
+                    <div class="text-sm text-gray-600">합계</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학습 진도 요약 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 진도 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="completed-questions">0</div>
+                    <div class="text-sm text-gray-600">완료한 문제</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="overall-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">전체 진도율</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                    <div class="text-sm text-gray-600">오늘 진도율</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학습 모드 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 모드를 선택해주세요</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <button onclick="ACIUApp.learning.startMode('basic')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg">
+                    기본 학습
+                </button>
+                <button onclick="ACIUApp.learning.startMode('layer1')" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg">
+                    대분류 학습
+                </button>
+                <button onclick="ACIUApp.learning.startMode('layer2')" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-lg">
+                    중분류 학습
+                </button>
+                <button onclick="ACIUApp.learning.startMode('choice')" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-6 rounded-lg">
+                    선택형 학습
+                </button>
+                <button onclick="ACIUApp.learning.startMode('truefalse')" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg">
+                    진위형 학습
+                </button>
+                <button onclick="ACIUApp.learning.startMode('mock')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg">
+                    모의고사
+                </button>
+            </div>
+        </div>
+
+        <!-- 기본 학습 화면 (처음에는 숨김) -->
+        <div id="basic-learning-screen" class="hidden">
+            <!-- 상단 네비게이션 -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <button onclick="ACIUApp.ui.goToHome()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                        🏠 홈으로
+                    </button>
+                    <h2 class="text-xl font-semibold text-gray-800">기본 학습</h2>
+                    <div class="text-sm text-gray-600">
+                        문제 <span id="current-question-number">1</span> / <span id="total-questions">1379</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 통계 자료 (더미 데이터) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">학습 현황</h3>
+                    <p class="text-2xl font-bold text-blue-600" id="learning-progress">3.3%</p>
+                    <p class="text-sm text-gray-600">총 1379문제 중 45문제 완료</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">학습 성과</h3>
+                    <p class="text-2xl font-bold text-green-600" id="learning-performance">71%</p>
+                    <p class="text-sm text-gray-600">풀이 45문제 중 32문제 정답</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">오늘의 통계</h3>
+                    <p class="text-2xl font-bold text-orange-600" id="today-stats">75%</p>
+                    <p class="text-sm text-gray-600">오늘 8문제 풀이</p>
+                </div>
+            </div>
+
+            <!-- 문제 풀이 기능 선택 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">문제 풀이 방식 선택</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <button onclick="ACIUApp.learning.startContinue()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg">
+                        이어풀기
+                    </button>
+                    <button onclick="ACIUApp.learning.startFromBeginning()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg">
+                        처음부터 풀기
+                    </button>
+                    <button onclick="ACIUApp.learning.startRandom()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg">
+                        랜덤 풀기
+                    </button>
+                </div>
+                <div class="text-center">
+                    <span class="text-sm text-gray-600">현재: 한 문제씩 풀기</span>
+                </div>
+            </div>
+
+            <!-- 문제 표시 영역 -->
+            <div id="question-area" class="hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <!-- 문제 정보 -->
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600" id="question-type">진위형</span>
+                            <span class="text-sm text-gray-600" id="question-code">ABANK-0001</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mb-2">
+                            <span id="layer-info">06재산보험 > 화재보험</span>
+                        </div>
+                    </div>
+
+                    <!-- 문제 내용 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">문제</h3>
+                        <p class="text-gray-700 leading-relaxed" id="question-text">
+                            문제 내용이 여기에 표시됩니다.
+                        </p>
+                    </div>
+
+                    <!-- 답안 선택 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">답안 선택</h3>
+                        <div id="answer-buttons" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- 진위형 버튼 (기본) -->
+                            <button onclick="ACIUApp.learning.selectAnswer('O')" class="answer-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg" data-answer="O">
+                                O
+                            </button>
+                            <button onclick="ACIUApp.learning.selectAnswer('X')" class="answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg" data-answer="X">
+                                X
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 결과 표시 -->
+                    <div id="result-area" class="hidden mb-6">
+                        <div class="p-4 rounded-lg" id="result-message">
+                            <!-- 결과 메시지가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+
+                    <!-- 네비게이션 버튼 -->
+                    <div class="flex justify-between items-center">
+                        <button onclick="ACIUApp.learning.prevQuestion()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                            이전 문제
+                        </button>
+                        <div class="flex space-x-2">
+                            <button onclick="ACIUApp.learning.checkAnswer()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                                정답 확인
+                            </button>
+                            <button onclick="ACIUApp.learning.showExplanation()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg hidden" id="explanation-btn">
+                                해설 보기
+                            </button>
+                        </div>
+                        <button onclick="ACIUApp.learning.nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                            다음 문제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대분류 학습 화면 (처음에는 숨김) -->
+        <div id="large-category-learning-screen" class="hidden">
+            <!-- 상단 네비게이션 -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <button onclick="ACIUApp.ui.goToHome()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                        🏠 홈으로
+                    </button>
+                    <h2 class="text-xl font-semibold text-gray-800">대분류 학습</h2>
+                    <div class="text-sm text-gray-600">
+                        선택된 대분류: <span id="selected-category">없음</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 보유 문제 현황 (상세) -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">보유 문제 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-lg font-semibold text-blue-800">인스교재</div>
+                        <div class="text-sm text-gray-600">선택형 300개, 진위형 400개</div>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-lg font-semibold text-green-800">보험중개사시험</div>
+                        <div class="text-sm text-gray-600">진위형 200개, 선택형 479개</div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">총계: 1,379개</div>
+                </div>
+            </div>
+
+            <!-- 학습 진도 현황 (대분류별) -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 진도 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="category-progress">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-lg font-semibold text-blue-800">재산보험</div>
+                        <div class="text-sm text-gray-600">45 / 300 (15%)</div>
+                        <div class="text-xs text-gray-500">미학습: 255</div>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-lg font-semibold text-green-800">특종보험</div>
+                        <div class="text-sm text-gray-600">32 / 250 (13%)</div>
+                        <div class="text-xs text-gray-500">미학습: 218</div>
+                    </div>
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <div class="text-lg font-semibold text-purple-800">배상책임보험</div>
+                        <div class="text-sm text-gray-600">28 / 200 (14%)</div>
+                        <div class="text-xs text-gray-500">미학습: 172</div>
+                    </div>
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div class="text-lg font-semibold text-yellow-800">해상보험</div>
+                        <div class="text-sm text-gray-600">15 / 150 (10%)</div>
+                        <div class="text-xs text-gray-500">미학습: 135</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 대분류 선택 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">대분류 선택</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" id="category-buttons">
+                    <button onclick="ACIUApp.learning.selectCategory('재산보험')" class="category-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition-all" data-category="재산보험">
+                        재산보험<br><span class="text-sm">(300문제)</span>
+                    </button>
+                    <button onclick="ACIUApp.learning.selectCategory('특종보험')" class="category-btn bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition-all" data-category="특종보험">
+                        특종보험<br><span class="text-sm">(250문제)</span>
+                    </button>
+                    <button onclick="ACIUApp.learning.selectCategory('배상책임보험')" class="category-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-lg transition-all" data-category="배상책임보험">
+                        배상책임보험<br><span class="text-sm">(200문제)</span>
+                    </button>
+                    <button onclick="ACIUApp.learning.selectCategory('해상보험')" class="category-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-6 rounded-lg transition-all" data-category="해상보험">
+                        해상보험<br><span class="text-sm">(150문제)</span>
+                    </button>
+                    <button onclick="ACIUApp.learning.selectCategory('자동차보험')" class="category-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-lg transition-all" data-category="자동차보험">
+                        자동차보험<br><span class="text-sm">(479문제)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 문제 표시 영역 (대분류 선택 후 표시) -->
+            <div id="large-category-question-area" class="hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <!-- 문제 정보 -->
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600" id="large-category-question-type">진위형</span>
+                            <span class="text-sm text-gray-600" id="large-category-question-code">ABANK-0001</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mb-2">
+                            <span id="large-category-layer-info">06재산보험 > 화재보험</span>
+                        </div>
+                    </div>
+
+                    <!-- 문제 내용 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">문제</h3>
+                        <p class="text-gray-700 leading-relaxed" id="large-category-question-text">
+                            대분류를 선택하면 문제가 표시됩니다.
+                        </p>
+                    </div>
+
+                    <!-- 답안 선택 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">답안 선택</h3>
+                        <div id="large-category-answer-buttons" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- 동적으로 생성될 답안 버튼들 -->
+                        </div>
+                    </div>
+
+                    <!-- 결과 표시 -->
+                    <div id="large-category-result-area" class="hidden mb-6">
+                        <div class="p-4 rounded-lg" id="large-category-result-message">
+                            <!-- 결과 메시지가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+
+                    <!-- 네비게이션 버튼 -->
+                    <div class="flex justify-between items-center">
+                        <button onclick="ACIUApp.learning.prevQuestion()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                            이전 문제
+                        </button>
+                        <div class="flex space-x-2">
+                            <button onclick="ACIUApp.learning.checkAnswer()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                                정답 확인
+                            </button>
+                            <button onclick="ACIUApp.learning.showExplanation()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg hidden" id="large-category-explanation-btn">
+                                해설 보기
+                            </button>
+                        </div>
+                        <button onclick="ACIUApp.learning.nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                            다음 문제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 통계 데이터 불러오기 버튼 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="text-center">
+                <button onclick="ACIUApp.ui.loadStatisticsData()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
+                    📊 통계 데이터 불러오기
+                </button>
+                <p class="text-sm text-gray-600 mt-2">버튼을 클릭하면 현재상태 총괄이 표시됩니다</p>
+            </div>
+        </div>
+
+        <!-- 통계 섹션 (초기 숨김) -->
+        <div id="statistics-section" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">현재상태 총괄</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 과목별 점수 카드 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">과목별 점수</h3>
+                        <div class="space-y-2" id="subject-cards">
+                            <!-- 동적으로 생성될 과목별 카드들 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 전체 요약 카드 -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">전체 요약</h3>
+                        <div class="space-y-3" id="summary-cards">
+                            <!-- 동적으로 생성될 요약 카드들 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">설정</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">사용자명</label>
+                    <input type="text" id="user-name-input" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="사용자명을 입력하세요">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">시험 날짜</label>
+                    <input type="date" id="exam-date-input" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="ACIUApp.ui.saveSettings()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                        저장
+                    </button>
+                    <button onclick="ACIUApp.ui.hideSettingsModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ACIUApp 네임스페이스 구조
+        const ACIUApp = {
+            // 타이머 관리
+            timers: {
+                timeUpdate: null,
+                quoteUpdate: null,
+                ddayUpdate: null
+            },
+
+            // 브라우저 호환성 확인
+            compatibility: {
+                checkBrowserSupport() {
+                    if (!window.localStorage) {
+                        this.showErrorMessage('localStorage를 지원하지 않는 브라우저입니다.');
+                        return false;
+                    }
+                    return true;
+                }
+            },
+
+            // 데이터 관리
+            data: {
+                questions: [],
+                userSettings: {
+                    name: '조대표님',
+                    examDate: '2024-12-31',
+                    lastUpdated: new Date().toISOString()
+                },
+                learningHistory: {
+                    attempts: {},
+                    lastUpdated: new Date().toISOString()
+                },
+
+                // CSV 데이터 로딩
+                async loadQuestions() {
+                    try {
+                        const response = await fetch('ins_master_db.csv');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const csvContent = await response.text();
+                        
+                        const parsed = Papa.parse(csvContent, {
+                            header: true,
+                            dynamicTyping: false,
+                            skipEmptyLines: true,
+                            delimiter: ',',
+                            quoteChar: '"',
+                            fastMode: true
+                        });
+
+                        // 필터링: QCODE가 있고 SOURCE가 '인스교재' 또는 '중개사시험'인 경우
+                        this.questions = parsed.data.filter(row =>
+                            row.QCODE && 
+                            (row.SOURCE === '인스교재' || row.SOURCE === '중개사시험')
+                        );
+
+                        console.log(`데이터 로딩 완료: ${this.questions.length}개 문제`);
+                        
+                        // 데이터 로딩 완료 후 UI 업데이트
+                        ACIUApp.ui.updateQuestionCounts();
+                        ACIUApp.ui.updateStatistics();
+                    } catch (error) {
+                        console.error('데이터 로딩 실패:', error);
+                        ACIUApp.ui.showErrorMessage('데이터를 불러오는데 실패했습니다. 파일 경로를 확인해주세요.');
+                    }
+                },
+
+                // 사용자 설정 로딩
+                loadUserSettings() {
+                    try {
+                        const saved = localStorage.getItem('aciu_user_settings');
+                        if (saved) {
+                            this.userSettings = { ...this.userSettings, ...JSON.parse(saved) };
+                        }
+                    } catch (error) {
+                        console.error('사용자 설정 로딩 실패:', error);
+                    }
+                },
+
+                // 사용자 설정 저장
+                saveUserSettings() {
+                    try {
+                        localStorage.setItem('aciu_user_settings', JSON.stringify(this.userSettings));
+                    } catch (error) {
+                        console.error('사용자 설정 저장 실패:', error);
+                    }
+                },
+
+                // 학습 이력 로딩
+                loadLearningHistory() {
+                    try {
+                        const saved = localStorage.getItem('aciu_learning_history');
+                        if (saved) {
+                            this.learningHistory = { ...this.learningHistory, ...JSON.parse(saved) };
+                        }
+                    } catch (error) {
+                        console.error('학습 이력 로딩 실패:', error);
+                    }
+                }
+            },
+
+            // UI 관리
+            ui: {
+                // 초기화
+                init() {
+                    this.updateHeader();
+                    this.updateQuestionCounts();
+                    this.updateStatistics();
+                    this.updateQuote();
+                    this.updateCurrentTime();
+                    this.updateDdayCount();
+                },
+
+                // 헤더 업데이트
+                updateHeader() {
+                    const userInfo = document.getElementById('user-info');
+                    const examDday = document.getElementById('exam-dday');
+                    
+                    userInfo.textContent = `사용자: ${ACIUApp.data.userSettings.name}`;
+                    
+                    const examDate = new Date(ACIUApp.data.userSettings.examDate);
+                    const today = new Date();
+                    const diffTime = examDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    examDday.textContent = `D-${Math.max(0, diffDays)}일`;
+                },
+
+                // 소스별 문제 수 업데이트
+                updateQuestionCounts() {
+                    const questions = ACIUApp.data.questions;
+                    
+                    // 소스별 문제 수 계산
+                    const insQuestions = questions.filter(q => q.SOURCE === '인스교재').length;
+                    const examQuestions = questions.filter(q => q.SOURCE === '중개사시험').length;
+                    const totalQuestions = questions.length;
+                    
+                    // UI 업데이트
+                    document.getElementById('ins-questions').textContent = insQuestions.toLocaleString();
+                    document.getElementById('exam-questions').textContent = examQuestions.toLocaleString();
+                    document.getElementById('total-questions').textContent = totalQuestions.toLocaleString();
+                },
+
+                // 통계 업데이트
+                updateStatistics() {
+                    const totalQuestions = ACIUApp.data.questions.length;
+                    const solvedQcodes = new Set(Object.keys(ACIUApp.data.learningHistory.attempts));
+                    const overallRate = totalQuestions > 0 ? Math.round((solvedQcodes.size / totalQuestions) * 100) : 0;
+                    
+                    // 일일 진도율
+                    const today = new Date().toISOString().slice(0, 10);
+                    const todayData = Object.values(ACIUApp.data.learningHistory.attempts)
+                        .filter(attempt => attempt.timestamp.slice(0, 10) === today);
+                    const todaySolved = todayData.length;
+                    const todayCorrect = todayData.filter(attempt => attempt.correct).length;
+                    const dailyRate = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
+                    
+                    // UI 업데이트
+                    document.getElementById('completed-questions').textContent = solvedQcodes.size.toLocaleString();
+                    document.getElementById('overall-progress-rate').textContent = `${overallRate}%`;
+                    document.getElementById('daily-progress-rate').textContent = `${dailyRate}%`;
+                },
+
+                // 기본 학습 통계 업데이트 (더미 데이터)
+                updateBasicLearningStats() {
+                    const dummyStats = {
+                        totalQuestions: 1379,
+                        completedQuestions: 45,
+                        correctAnswers: 32,
+                        todayQuestions: 8,
+                        todayCorrect: 6
+                    };
+                    
+                    // 학습 현황 통계
+                    document.getElementById('learning-progress').textContent = `${Math.round((dummyStats.completedQuestions / dummyStats.totalQuestions) * 100)}%`;
+                    
+                    // 학습 성과 통계
+                    document.getElementById('learning-performance').textContent = `${Math.round((dummyStats.correctAnswers / dummyStats.completedQuestions) * 100)}%`;
+                    
+                    // 오늘의 통계
+                    document.getElementById('today-stats').textContent = `${Math.round((dummyStats.todayCorrect / dummyStats.todayQuestions) * 100)}%`;
+                },
+
+                // 과목별 점수 카드 업데이트 (더미 데이터 적용)
+                updateSubjectCards() {
+                    const subjects = ['06재산보험', '07특종보험', '08배상책임보험', '09해상보험'];
+                    const scores = [55, 65, 67, 30]; // 더미 점수
+                    const subjectCards = document.getElementById('subject-cards');
+                    subjectCards.innerHTML = '';
+                    
+                    subjects.forEach((subject, index) => {
+                        const score = scores[index];
+                        const isPass = score >= 40;
+                        const card = document.createElement('div');
+                        card.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                        card.innerHTML = `
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${subject}</div>
+                                <div class="text-xs text-gray-500">기준: 40점</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${score}점</div>
+                                <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
+                            </div>
+                        `;
+                        subjectCards.appendChild(card);
+                    });
+                },
+
+                // 전체 요약 카드 업데이트 (더미 데이터 적용)
+                updateSummaryCards() {
+                    const scores = [55, 65, 67, 30]; // 더미 점수
+                    const overallScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                    const lowestScore = Math.min(...scores);
+                    const isPass = overallScore >= 60 && lowestScore >= 40;
+                    
+                    const summaryCards = document.getElementById('summary-cards');
+                    summaryCards.innerHTML = '';
+                    
+                    // 평균 점수 카드
+                    const isAvgPass = overallScore >= 60;
+                    const avgCard = document.createElement('div');
+                    avgCard.className = 'flex justify-between items-center p-3 bg-white rounded border';
+                    avgCard.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-semibold">평균점수</div>
+                            <div class="text-xs text-gray-500">기준: 60점</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${overallScore}점</div>
+                            <div class="text-xs ${isAvgPass ? 'text-green-600' : 'text-red-600'}">${isAvgPass ? '합격' : '불합격'}</div>
+                        </div>
+                    `;
+                    summaryCards.appendChild(avgCard);
+                    
+                    // 최종 합격 여부 카드
+                    const finalCard = document.createElement('div');
+                    finalCard.className = `flex justify-between items-center p-3 rounded border ${isPass ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`;
+                    finalCard.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-bold">최종합격여부</div>
+                            <div class="text-xs text-gray-500">모든 조건 만족</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '합격' : '불합격'}</div>
+                            <div class="text-xs ${isPass ? 'text-green-600' : 'text-red-600'}">${isPass ? '🎉' : '⚠️'}</div>
+                        </div>
+                    `;
+                    summaryCards.appendChild(finalCard);
+                },
+
+                // 현재 시간 업데이트
+                updateCurrentTime() {
+                    const now = new Date();
+                    const timeString = now.toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    });
+                    document.getElementById('current-time').textContent = timeString;
+                },
+
+                // D-Day 업데이트
+                updateDdayCount() {
+                    const examDate = new Date(ACIUApp.data.userSettings.examDate);
+                    const today = new Date();
+                    const diffTime = examDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    document.getElementById('exam-dday').textContent = `D-${Math.max(0, diffDays)}일`;
+                },
+
+                // 명언 업데이트
+                updateQuote() {
+                    const quotes = [
+                        "학습은 가장 좋은 투자입니다.",
+                        "꾸준함이 최고의 재능입니다.",
+                        "오늘의 노력이 내일의 성공을 만듭니다.",
+                        "실패는 성공의 어머니입니다.",
+                        "작은 진전도 큰 성취의 시작입니다.",
+                        "끝까지 가는 자가 이긴다.",
+                        "자신을 믿어라, 당신은 할 수 있다.",
+                        "시간은 가장 귀중한 자산입니다.",
+                        "목표를 향해 한 걸음씩 나아가라.",
+                        "배움에는 끝이 없다."
+                    ];
+                    
+                    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                    document.getElementById('quote-of-day').textContent = `"${randomQuote}"`;
+                },
+
+                // 설정 모달 표시
+                showSettingsModal() {
+                    document.getElementById('user-name-input').value = ACIUApp.data.userSettings.name;
+                    document.getElementById('exam-date-input').value = ACIUApp.data.userSettings.examDate;
+                    document.getElementById('settings-modal').classList.remove('hidden');
+                },
+
+                // 설정 모달 숨기기
+                hideSettingsModal() {
+                    document.getElementById('settings-modal').classList.add('hidden');
+                },
+
+                // 설정 저장
+                saveSettings() {
+                    const name = document.getElementById('user-name-input').value.trim();
+                    const examDate = document.getElementById('exam-date-input').value;
+                    
+                    if (name) {
+                        ACIUApp.data.userSettings.name = name;
+                    }
+                    if (examDate) {
+                        ACIUApp.data.userSettings.examDate = examDate;
+                    }
+                    
+                    ACIUApp.data.userSettings.lastUpdated = new Date().toISOString();
+                    ACIUApp.data.saveUserSettings();
+                    this.updateHeader();
+                    this.hideSettingsModal();
+                },
+
+                // 통계 데이터 불러오기
+                loadStatisticsData() {
+                    console.log('통계 데이터 불러오기 시작');
+                    
+                    // 통계 섹션 표시
+                    document.getElementById('statistics-section').classList.remove('hidden');
+                    
+                    // 통계 업데이트
+                    this.updateSubjectCards();
+                    this.updateSummaryCards();
+                    
+                    console.log('통계 데이터 불러오기 완료');
+                },
+
+                // 오류 메시지 표시
+                showErrorMessage(message) {
+                    alert(message);
+                },
+
+                // 홈으로 돌아가기
+                goToHome() {
+                    console.log('홈으로 돌아가기');
+                    
+                    // 기본 학습 화면 숨기기
+                    document.getElementById('basic-learning-screen').classList.add('hidden');
+                    
+                    // 대분류 학습 화면 숨기기
+                    document.getElementById('large-category-learning-screen').classList.add('hidden');
+                    
+                    // 현재 모드 업데이트
+                    document.getElementById('current-mode').textContent = '모드 선택';
+                }
+            },
+
+            // 학습 엔진
+            learning: {
+                // 학습 상태 변수
+                currentQuestionIndex: 0,
+                filteredQuestions: [],
+                selectedAnswer: null,
+                currentQuestion: null,
+                isAnswerChecked: false,
+
+                // 기본 학습 모드 시작
+                startMode(mode) {
+                    console.log(`학습 모드 시작: ${mode}`);
+                    
+                    if (mode === 'basic') {
+                        this.startBasicLearning();
+                    } else if (mode === 'layer1') {
+                        this.startLargeCategoryLearning();
+                    } else {
+                        alert(`${mode} 모드가 준비 중입니다.`);
+                    }
+                },
+
+                // 기본 학습 시작
+                startBasicLearning() {
+                    console.log('기본 학습 모드 시작');
+                    
+                    // 기본 학습 화면 표시
+                    document.getElementById('basic-learning-screen').classList.remove('hidden');
+                    
+                    // 현재 모드 업데이트
+                    document.getElementById('current-mode').textContent = '기본 학습';
+                    
+                    // 문제 목록 설정
+                    this.filteredQuestions = ACIUApp.data.questions;
+                    this.currentQuestionIndex = 0;
+                    
+                    // 기본 학습 통계 업데이트
+                    ACIUApp.ui.updateBasicLearningStats();
+                    
+                    console.log(`총 ${this.filteredQuestions.length}개 문제 로드됨`);
+                },
+
+                // 대분류 학습 시작
+                startLargeCategoryLearning() {
+                    console.log('대분류 학습 모드 시작');
+                    
+                    // 대분류 학습 화면 표시
+                    document.getElementById('large-category-learning-screen').classList.remove('hidden');
+                    
+                    // 현재 모드 업데이트
+                    document.getElementById('current-mode').textContent = '대분류 학습';
+                    
+                    // 선택된 카테고리 초기화
+                    this.selectedCategory = null;
+                    
+                    console.log('대분류 학습 화면 표시됨');
+                },
+
+                // 대분류 선택
+                selectCategory(category) {
+                    console.log(`대분류 선택: ${category}`);
+                    
+                    // 선택된 카테고리 저장
+                    this.selectedCategory = category;
+                    
+                    // UI 업데이트
+                    document.getElementById('selected-category').textContent = category;
+                    
+                    // 버튼 시각적 피드백
+                    this.updateCategoryButtonSelection(category);
+                    
+                    // 더미 문제 생성 및 표시
+                    this.loadDummyQuestionsForCategory(category);
+                    
+                    console.log(`${category} 카테고리 선택됨`);
+                },
+
+                // 카테고리 버튼 선택 상태 업데이트
+                updateCategoryButtonSelection(selectedCategory) {
+                    // 모든 카테고리 버튼에서 선택 상태 제거
+                    document.querySelectorAll('.category-btn').forEach(btn => {
+                        btn.classList.remove('ring-4', 'ring-blue-300', 'ring-2', 'ring-white');
+                    });
+                    
+                    // 선택된 카테고리 버튼 강조
+                    const selectedButton = document.querySelector(`[data-category="${selectedCategory}"]`);
+                    if (selectedButton) {
+                        selectedButton.classList.add('ring-4', 'ring-blue-300');
+                    }
+                },
+
+                // 카테고리별 더미 문제 로드
+                loadDummyQuestionsForCategory(category) {
+                    // 더미 문제 데이터 생성
+                    const dummyQuestions = this.createDummyQuestions(category);
+                    
+                    // 문제 목록 설정
+                    this.filteredQuestions = dummyQuestions;
+                    this.currentQuestionIndex = 0;
+                    
+                    // 문제 표시 영역 표시
+                    document.getElementById('large-category-question-area').classList.remove('hidden');
+                    
+                    // 첫 번째 문제 표시
+                    this.displayLargeCategoryQuestion();
+                    
+                    console.log(`${category} 카테고리 더미 문제 ${dummyQuestions.length}개 로드됨`);
+                },
+
+                // 더미 문제 생성
+                createDummyQuestions(category) {
+                    const questions = [];
+                    
+                    // 진위형 문제 3개
+                    for (let i = 1; i <= 3; i++) {
+                        questions.push({
+                            QCODE: `${category}-TF-${i.toString().padStart(3, '0')}`,
+                            TYPE: '진위형',
+                            QUESTION: `${category} 관련 진위형 문제 ${i}번입니다. 이 문제는 더미 데이터입니다.`,
+                            ANSWER: i % 2 === 0 ? 'O' : 'X',
+                            LAYER1: category,
+                            LAYER2: '더미서브카테고리',
+                            EXPLAIN: `${category} 진위형 문제 ${i}번 해설입니다.`
+                        });
+                    }
+                    
+                    // 선택형 문제 2개
+                    for (let i = 1; i <= 2; i++) {
+                        questions.push({
+                            QCODE: `${category}-CH-${i.toString().padStart(3, '0')}`,
+                            TYPE: '선택형',
+                            QUESTION: `${category} 관련 선택형 문제 ${i}번입니다. 이 문제는 더미 데이터입니다.`,
+                            ANSWER: i.toString(),
+                            LAYER1: category,
+                            LAYER2: '더미서브카테고리',
+                            EXPLAIN: `${category} 선택형 문제 ${i}번 해설입니다.`
+                        });
+                    }
+                    
+                    return questions;
+                },
+
+                // 대분류 문제 표시
+                displayLargeCategoryQuestion() {
+                    if (this.currentQuestionIndex >= this.filteredQuestions.length) {
+                        alert('모든 문제를 풀이했습니다!');
+                        return;
+                    }
+
+                    this.currentQuestion = this.filteredQuestions[this.currentQuestionIndex];
+                    this.selectedAnswer = null;
+                    this.isAnswerChecked = false;
+
+                    console.log('대분류 문제 표시:', this.currentQuestion);
+
+                    // 문제 정보 업데이트
+                    document.getElementById('large-category-question-type').textContent = this.currentQuestion.TYPE === '진위형' ? '진위형' : '선택형';
+                    document.getElementById('large-category-question-code').textContent = this.currentQuestion.QCODE;
+                    document.getElementById('large-category-layer-info').textContent = `${this.currentQuestion.LAYER1} > ${this.currentQuestion.LAYER2}`;
+                    document.getElementById('large-category-question-text').textContent = this.currentQuestion.QUESTION;
+
+                    // 답안 버튼 업데이트
+                    this.updateLargeCategoryAnswerButtons();
+
+                    // 결과 영역 초기화
+                    document.getElementById('large-category-result-area').classList.add('hidden');
+                    document.getElementById('large-category-explanation-btn').classList.add('hidden');
+                },
+
+                // 대분류 답안 버튼 업데이트
+                updateLargeCategoryAnswerButtons() {
+                    const container = document.getElementById('large-category-answer-buttons');
+                    container.innerHTML = '';
+
+                    if (this.currentQuestion.TYPE === '진위형') {
+                        // 진위형 버튼
+                        const oButton = document.createElement('button');
+                        oButton.className = 'answer-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg';
+                        oButton.setAttribute('data-answer', 'O');
+                        oButton.onclick = () => this.selectAnswer('O');
+                        oButton.textContent = 'O';
+                        container.appendChild(oButton);
+
+                        const xButton = document.createElement('button');
+                        xButton.className = 'answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg';
+                        xButton.setAttribute('data-answer', 'X');
+                        xButton.onclick = () => this.selectAnswer('X');
+                        xButton.textContent = 'X';
+                        container.appendChild(xButton);
+                    } else {
+                        // 선택형 버튼
+                        for (let i = 1; i <= 4; i++) {
+                            const button = document.createElement('button');
+                            button.className = 'answer-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg';
+                            button.setAttribute('data-answer', i.toString());
+                            button.onclick = () => this.selectAnswer(i.toString());
+                            button.textContent = i.toString();
+                            container.appendChild(button);
+                        }
+                    }
+                },
+
+                // 이어풀기 시작
+                startContinue() {
+                    console.log('이어풀기 시작');
+                    this.startQuestionMode();
+                },
+
+                // 처음부터 풀기 시작
+                startFromBeginning() {
+                    console.log('처음부터 풀기 시작');
+                    this.currentQuestionIndex = 0;
+                    this.startQuestionMode();
+                },
+
+                // 랜덤 풀기 시작
+                startRandom() {
+                    console.log('랜덤 풀기 시작');
+                    this.currentQuestionIndex = Math.floor(Math.random() * this.filteredQuestions.length);
+                    this.startQuestionMode();
+                },
+
+                // 문제 풀이 모드 시작
+                startQuestionMode() {
+                    console.log('문제 풀이 모드 시작');
+                    
+                    // 문제 영역 표시
+                    document.getElementById('question-area').classList.remove('hidden');
+                    
+                    // 첫 번째 문제 표시
+                    this.displayQuestion();
+                },
+
+                // 문제 표시
+                displayQuestion() {
+                    if (this.currentQuestionIndex >= this.filteredQuestions.length) {
+                        alert('모든 문제를 풀이했습니다!');
+                        return;
+                    }
+
+                    this.currentQuestion = this.filteredQuestions[this.currentQuestionIndex];
+                    this.selectedAnswer = null;
+                    this.isAnswerChecked = false;
+
+                    console.log('문제 표시:', this.currentQuestion);
+
+                    // 문제 정보 업데이트
+                    document.getElementById('question-type').textContent = this.currentQuestion.TYPE === '진위형' ? '진위형' : '선택형';
+                    document.getElementById('question-code').textContent = this.currentQuestion.QCODE;
+                    document.getElementById('layer-info').textContent = `${this.currentQuestion.LAYER1} > ${this.currentQuestion.LAYER2}`;
+                    document.getElementById('question-text').textContent = this.currentQuestion.QUESTION;
+                    document.getElementById('current-question-number').textContent = this.currentQuestionIndex + 1;
+                    document.getElementById('total-questions').textContent = this.filteredQuestions.length;
+
+                    // 답안 버튼 업데이트
+                    this.updateAnswerButtons();
+
+                    // 결과 영역 초기화
+                    document.getElementById('result-area').classList.add('hidden');
+                    document.getElementById('explanation-btn').classList.add('hidden');
+
+                    // 답안 버튼 초기화
+                    this.resetAnswerButtons();
+                },
+
+                // 답안 버튼 업데이트
+                updateAnswerButtons() {
+                    const answerButtons = document.getElementById('answer-buttons');
+                    answerButtons.innerHTML = '';
+
+                    if (this.currentQuestion.TYPE === '진위형') {
+                        // 진위형 버튼
+                        const oButton = document.createElement('button');
+                        oButton.className = 'answer-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg';
+                        oButton.setAttribute('data-answer', 'O');
+                        oButton.onclick = () => this.selectAnswer('O');
+                        oButton.textContent = 'O';
+                        answerButtons.appendChild(oButton);
+
+                        const xButton = document.createElement('button');
+                        xButton.className = 'answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg';
+                        xButton.setAttribute('data-answer', 'X');
+                        xButton.onclick = () => this.selectAnswer('X');
+                        xButton.textContent = 'X';
+                        answerButtons.appendChild(xButton);
+                    } else {
+                        // 선택형 버튼
+                        for (let i = 1; i <= 4; i++) {
+                            const button = document.createElement('button');
+                            button.className = 'answer-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg';
+                            button.setAttribute('data-answer', i.toString());
+                            button.onclick = () => this.selectAnswer(i.toString());
+                            button.textContent = i.toString();
+                            answerButtons.appendChild(button);
+                        }
+                    }
+                },
+
+                // 답안 선택
+                selectAnswer(answer) {
+                    console.log('답안 선택:', answer);
+                    this.selectedAnswer = answer;
+                    
+                    // 모든 답안 버튼 초기화
+                    this.resetAnswerButtons();
+                    
+                    // 선택된 답안 버튼 강조
+                    const selectedButton = document.querySelector(`[data-answer="${answer}"]`);
+                    if (selectedButton) {
+                        selectedButton.classList.remove('bg-blue-500', 'bg-red-500', 'bg-gray-500');
+                        selectedButton.classList.add('bg-yellow-500');
+                    }
+                },
+
+                // 답안 버튼 초기화
+                resetAnswerButtons() {
+                    const buttons = document.querySelectorAll('.answer-btn');
+                    buttons.forEach(button => {
+                        button.classList.remove('bg-yellow-500');
+                        if (button.getAttribute('data-answer') === 'O') {
+                            button.classList.add('bg-blue-500');
+                        } else if (button.getAttribute('data-answer') === 'X') {
+                            button.classList.add('bg-red-500');
+                        } else {
+                            button.classList.add('bg-gray-500');
+                        }
+                    });
+                },
+
+                // 정답 확인
+                checkAnswer() {
+                    if (!this.selectedAnswer) {
+                        alert('답안을 선택해주세요.');
+                        return;
+                    }
+
+                    console.log('정답 확인');
+                    this.isAnswerChecked = true;
+
+                    const isCorrect = this.selectedAnswer === this.currentQuestion.ANSWER;
+                    
+                    // 현재 모드에 따라 결과 영역 선택
+                    let resultArea, resultMessage, explanationBtn;
+                    
+                    if (this.selectedCategory) {
+                        // 대분류 학습 모드
+                        resultArea = document.getElementById('large-category-result-area');
+                        resultMessage = document.getElementById('large-category-result-message');
+                        explanationBtn = document.getElementById('large-category-explanation-btn');
+                    } else {
+                        // 기본 학습 모드
+                        resultArea = document.getElementById('result-area');
+                        resultMessage = document.getElementById('result-message');
+                        explanationBtn = document.getElementById('explanation-btn');
+                    }
+
+                    // 결과 메시지 설정
+                    if (isCorrect) {
+                        resultMessage.className = 'p-4 rounded-lg bg-green-100 text-green-800';
+                        resultMessage.innerHTML = `
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-2">✅</span>
+                                <span class="font-bold">정답입니다!</span>
+                            </div>
+                        `;
+                    } else {
+                        resultMessage.className = 'p-4 rounded-lg bg-red-100 text-red-800';
+                        resultMessage.innerHTML = `
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-2">❌</span>
+                                <span class="font-bold">틀렸습니다.</span>
+                                <span class="ml-2">정답: ${this.currentQuestion.ANSWER}</span>
+                            </div>
+                        `;
+                    }
+
+                    // 결과 영역 표시
+                    resultArea.classList.remove('hidden');
+
+                    // 해설 버튼 표시
+                    explanationBtn.classList.remove('hidden');
+
+                    // 학습 이력 저장
+                    this.saveLearningHistory(isCorrect);
+                },
+
+                // 다음 문제
+                nextQuestion() {
+                    if (this.currentQuestionIndex < this.filteredQuestions.length - 1) {
+                        this.currentQuestionIndex++;
+                        if (this.selectedCategory) {
+                            this.displayLargeCategoryQuestion();
+                        } else {
+                            this.displayQuestion();
+                        }
+                    } else {
+                        alert('마지막 문제입니다.');
+                    }
+                },
+
+                // 이전 문제
+                prevQuestion() {
+                    if (this.currentQuestionIndex > 0) {
+                        this.currentQuestionIndex--;
+                        if (this.selectedCategory) {
+                            this.displayLargeCategoryQuestion();
+                        } else {
+                            this.displayQuestion();
+                        }
+                    } else {
+                        alert('첫 번째 문제입니다.');
+                    }
+                },
+
+                // 해설 보기
+                showExplanation() {
+                    if (this.currentQuestion.EXPLAIN) {
+                        alert(`해설: ${this.currentQuestion.EXPLAIN}`);
+                    } else {
+                        alert('해설이 준비되지 않았습니다.');
+                    }
+                },
+
+                // 학습 이력 저장
+                saveLearningHistory(isCorrect) {
+                    if (!this.currentQuestion) return;
+
+                    const learningData = {
+                        qcode: this.currentQuestion.QCODE,
+                        timestamp: new Date().toISOString(),
+                        isCorrect: isCorrect,
+                        layer1: this.currentQuestion.LAYER1,
+                        layer2: this.currentQuestion.LAYER2,
+                        mode: this.selectedCategory ? 'large-category' : 'basic'
+                    };
+
+                    let history = JSON.parse(localStorage.getItem('aciu_learning_history')) || [];
+                    history.push(learningData);
+                    localStorage.setItem('aciu_learning_history', JSON.stringify(history));
+
+                    console.log('학습 이력 저장됨:', learningData);
+                }
+            }
+        };
+
+        // ACIUApp 초기화 함수
+        ACIUApp.init = async function() {
+            console.log('ACIUApp 초기화 시작');
+            
+            // 브라우저 호환성 확인
+            this.compatibility.checkBrowserSupport();
+            
+            // 데이터 로딩
+            await this.data.loadQuestions();
+            this.data.loadUserSettings();
+            this.data.loadLearningHistory();
+            
+            // UI 초기화
+            this.ui.init();
+            
+            console.log('ACIUApp 초기화 완료');
+        };
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            ACIUApp.init();
+        });
+    </script>
+</body>
+</html> 

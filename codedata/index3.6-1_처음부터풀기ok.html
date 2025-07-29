@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV 퀴즈 테스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 8px;
+        }
+        .question-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .question-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .question-table td {
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        .qcode-cell {
+            width: 80px;
+            text-align: center;
+            font-weight: bold;
+            background: #e9ecef;
+        }
+        .question-cell {
+            width: 60%;
+            line-height: 1.6;
+        }
+        .answer-cell {
+            width: 200px;
+            text-align: center;
+        }
+        .answer-btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .answer-btn.o {
+            background: #007bff;
+            color: white;
+        }
+        .answer-btn.x {
+            background: #dc3545;
+            color: white;
+        }
+        .answer-btn:hover {
+            opacity: 0.8;
+        }
+        .answer-btn.selected {
+            background: #ffc107 !important;
+            color: #000 !important;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .result.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .control-btn {
+            padding: 12px 24px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .control-btn.primary {
+            background: #28a745;
+            color: white;
+        }
+        .control-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .control-btn:hover {
+            opacity: 0.8;
+        }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #6c757d;
+        }
+        .error {
+            text-align: center;
+            padding: 20px;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CSV 퀴즈 테스트 프로그램</h1>
+            <p>ins_master_db.csv 파일에서 문제를 로드하여 표시합니다</p>
+        </div>
+
+        <div id="loading" class="loading">
+            CSV 파일을 로딩 중입니다...
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            CSV 파일 로딩에 실패했습니다.
+        </div>
+
+        <div id="quiz-content" style="display: none;">
+            <div class="status">
+                <span id="current-status">문제 1 / 전체 0개</span>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn secondary" onclick="previousQuestion()">이전 문제</button>
+                <button class="control-btn primary" onclick="nextQuestion()">다음 문제</button>
+            </div>
+
+            <table class="question-table">
+                <thead>
+                    <tr>
+                        <th>QCODE</th>
+                        <th>문제</th>
+                        <th>답안 선택</th>
+                    </tr>
+                </thead>
+                <tbody id="question-tbody">
+                    <!-- 문제가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let csvData = [];
+        let currentQuestionIndex = 0;
+        let selectedAnswers = {};
+
+        // CSV 파일 로드
+        function loadCSVData() {
+            console.log('CSV 파일 로딩 시작...');
+            
+            Papa.parse('ins_master_db.csv', {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    console.log('CSV 파싱 완료:', results.data.length, '개 행');
+                    
+                    // 유효한 데이터만 필터링
+                    csvData = results.data.filter(row => 
+                        row.QCODE && row.QUESTION && row.ANSWER
+                    );
+                    
+                    console.log('필터링된 데이터:', csvData.length, '개 문제');
+                    
+                    if (csvData.length > 0) {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('quiz-content').style.display = 'block';
+                        displayCurrentQuestion();
+                        updateStatus();
+                    } else {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('error').style.display = 'block';
+                        document.getElementById('error').textContent = '유효한 문제 데이터가 없습니다.';
+                    }
+                },
+                error: function(error) {
+                    console.error('CSV 로드 오류:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').textContent = 'CSV 파일 로딩에 실패했습니다: ' + error.message;
+                }
+            });
+        }
+
+        // 현재 문제 표시
+        function displayCurrentQuestion() {
+            if (csvData.length === 0) return;
+            
+            const question = csvData[currentQuestionIndex];
+            console.log('현재 문제:', question);
+            
+            const tbody = document.getElementById('question-tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td class="qcode-cell">${question.QCODE}</td>
+                    <td class="question-cell">${question.QUESTION}</td>
+                    <td class="answer-cell">
+                        <button class="answer-btn o" onclick="selectAnswer('O')" data-answer="O">O</button>
+                        <button class="answer-btn x" onclick="selectAnswer('X')" data-answer="X">X</button>
+                        <div id="result-${currentQuestionIndex}" class="result" style="display: none;"></div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // 답안 선택
+        function selectAnswer(answer) {
+            console.log('답안 선택:', answer);
+            
+            // 모든 버튼 초기화
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // 선택된 버튼 강조
+            const selectedButton = document.querySelector(`[data-answer="${answer}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('selected');
+            }
+            
+            // 답안 저장
+            selectedAnswers[currentQuestionIndex] = answer;
+            
+            // 정답 확인
+            checkAnswer(answer);
+        }
+
+        // 정답 확인
+        function checkAnswer(selectedAnswer) {
+            const question = csvData[currentQuestionIndex];
+            const correctAnswer = question.ANSWER;
+            const isCorrect = selectedAnswer === correctAnswer;
+            
+            console.log('정답 확인:', {
+                selected: selectedAnswer,
+                correct: correctAnswer,
+                isCorrect: isCorrect
+            });
+            
+            const resultDiv = document.getElementById(`result-${currentQuestionIndex}`);
+            resultDiv.style.display = 'block';
+            
+            if (isCorrect) {
+                resultDiv.className = 'result correct';
+                resultDiv.innerHTML = '✅ 정답입니다!';
+            } else {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerHTML = `❌ 틀렸습니다. 정답: ${correctAnswer}`;
+            }
+        }
+
+        // 다음 문제
+        function nextQuestion() {
+            if (currentQuestionIndex < csvData.length - 1) {
+                currentQuestionIndex++;
+                displayCurrentQuestion();
+                updateStatus();
+            } else {
+                alert('마지막 문제입니다.');
+            }
+        }
+
+        // 이전 문제
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayCurrentQuestion();
+                updateStatus();
+            } else {
+                alert('첫 번째 문제입니다.');
+            }
+        }
+
+        // 상태 업데이트
+        function updateStatus() {
+            const statusElement = document.getElementById('current-status');
+            statusElement.textContent = `문제 ${currentQuestionIndex + 1} / 전체 ${csvData.length}개`;
+        }
+
+        // 페이지 로드 시 CSV 데이터 로드
+        window.addEventListener('load', function() {
+            console.log('페이지 로드됨, CSV 데이터 로딩 시작');
+            loadCSVData();
+        });
+    </script>
+</body>
+</html> 

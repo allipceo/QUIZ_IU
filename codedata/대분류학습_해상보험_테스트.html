@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>해상보험 모듈 테스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        // 해상보험 전용 테스트 앱
+        const MarineInsuranceTest = {
+            data: {
+                questions: [],
+                isDataLoaded: false,
+                currentQuestionIndex: 0,
+                selectedAnswer: null,
+                completedQuestions: 0,
+                correctAnswers: 0,
+                // 불기와 이어풀기 기능 추가
+                isFirstTime: true,
+                lastCompletedIndex: -1,
+                sessionProgress: {}
+            },
+
+            // CSV 데이터 로드
+            loadData: function() {
+                return new Promise((resolve, reject) => {
+                    Papa.parse('ins_master_db.csv', {
+                        download: true,
+                        header: true,
+                        complete: function(results) {
+                            console.log('CSV 데이터 로드 완료:', results.data.length, '개 문제');
+                            
+                            // 해상보험만 필터링 (LAYER1이 '09해상보험'인 문제들)
+                            MarineInsuranceTest.data.questions = results.data.filter(row => 
+                                row.QCODE && row.QUESTION && row.ANSWER && row.LAYER1 === '09해상보험'
+                            );
+                            
+                            MarineInsuranceTest.data.isDataLoaded = true;
+                            console.log('해상보험 문제 필터링 완료:', MarineInsuranceTest.data.questions.length, '개 문제');
+                            
+                            // 데이터 로드 후 즉시 통계 업데이트
+                            MarineInsuranceTest.updateStats();
+                            
+                            resolve(MarineInsuranceTest.data.questions);
+                        },
+                        error: function(error) {
+                            console.error('CSV 로드 오류:', error);
+                            reject(error);
+                        }
+                    });
+                });
+            },
+
+            // 초기화
+            init: function() {
+                this.loadData().then(() => {
+                    // 학습 모드 확인
+                    const learningMode = document.querySelector('input[name="learning-mode"]:checked').value;
+                    console.log('선택된 학습 모드:', learningMode);
+                    
+                    if (learningMode === 'restart') {
+                        // 처음부터 풀기: 진행상황 초기화
+                        this.resetProgress();
+                        console.log('해상보험 진행상황 초기화 완료');
+                    } else {
+                        // 이어풀기: 진행상황 로드
+                        this.loadProgress();
+                    }
+                    
+                    this.showQuestion();
+                }).catch(error => {
+                    console.error('초기화 오류:', error);
+                    document.getElementById('error-message').textContent = '데이터 로드 중 오류가 발생했습니다.';
+                });
+            },
+
+            // 진행상황 로드
+            loadProgress: function() {
+                const savedProgress = localStorage.getItem('marineInsuranceProgress');
+                if (savedProgress) {
+                    try {
+                        const progress = JSON.parse(savedProgress);
+                        this.data.completedQuestions = progress.completedQuestions || 0;
+                        this.data.correctAnswers = progress.correctAnswers || 0;
+                        this.data.lastCompletedIndex = progress.lastCompletedIndex || -1;
+                        this.data.sessionProgress = progress.sessionProgress || {};
+                        
+                        // 이어풀기: 마지막 완료된 문제 다음부터 시작
+                        if (this.data.lastCompletedIndex >= 0 && this.data.lastCompletedIndex < this.data.questions.length - 1) {
+                            this.data.currentQuestionIndex = this.data.lastCompletedIndex + 1;
+                            this.data.isFirstTime = false;
+                        }
+                        
+                        console.log('해상보험 진행상황 로드 완료:', {
+                            completed: this.data.completedQuestions,
+                            correct: this.data.correctAnswers,
+                            lastIndex: this.data.lastCompletedIndex,
+                            currentIndex: this.data.currentQuestionIndex
+                        });
+                    } catch (error) {
+                        console.error('진행상황 로드 오류:', error);
+                    }
+                }
+            },
+
+            // 진행상황 저장
+            saveProgress: function() {
+                const progress = {
+                    completedQuestions: this.data.completedQuestions,
+                    correctAnswers: this.data.correctAnswers,
+                    lastCompletedIndex: this.data.lastCompletedIndex,
+                    sessionProgress: this.data.sessionProgress,
+                    timestamp: new Date().toISOString()
+                };
+                
+                localStorage.setItem('marineInsuranceProgress', JSON.stringify(progress));
+                console.log('해상보험 진행상황 저장 완료:', progress);
+            },
+
+            // 통계 업데이트
+            updateStats: function() {
+                const totalQuestions = this.data.questions.length;
+                const completedQuestions = this.data.completedQuestions;
+                const correctAnswers = this.data.correctAnswers;
+                
+                const progressPercent = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
+                const accuracyPercent = completedQuestions > 0 ? Math.round((correctAnswers / completedQuestions) * 100) : 0;
+                
+                // 통계 업데이트
+                document.getElementById('progress-percent').textContent = progressPercent + '%';
+                document.getElementById('accuracy-percent').textContent = accuracyPercent + '%';
+                document.getElementById('completed-text').textContent = `총 ${totalQuestions}문제 중 ${completedQuestions}문제 완료`;
+                document.getElementById('correct-text').textContent = `풀이 ${completedQuestions}문제 중 ${correctAnswers}문제 정답`;
+                document.getElementById('total-count').textContent = totalQuestions;
+                
+                console.log('해상보험 통계 업데이트:', {
+                    total: totalQuestions,
+                    completed: completedQuestions,
+                    correct: correctAnswers,
+                    progress: progressPercent + '%',
+                    accuracy: accuracyPercent + '%'
+                });
+            },
+
+            // 문제 표시
+            showQuestion: function() {
+                if (!this.data.isDataLoaded || this.data.questions.length === 0) {
+                    document.getElementById('question-text').textContent = '해상보험 문제를 로드하는 중입니다...';
+                    return;
+                }
+
+                const question = this.data.questions[this.data.currentQuestionIndex];
+                if (!question) {
+                    document.getElementById('question-text').textContent = '모든 문제를 완료했습니다!';
+                    return;
+                }
+
+                document.getElementById('question-code').textContent = question.QCODE || '코드 없음';
+                document.getElementById('question-type').textContent = question.TYPE || '진위형';
+                document.getElementById('question-text').textContent = question.QUESTION;
+                document.getElementById('layer-info').textContent = `${question.LAYER1} > ${question.LAYER2 || '미분류'}`;
+
+                // 답안 버튼 생성
+                this.createAnswerButtons(question);
+                
+                // 이전에 풀었던 문제인지 확인
+                const previousResult = this.data.sessionProgress[this.data.currentQuestionIndex];
+                if (previousResult) {
+                    // 이전 결과 표시
+                    this.showPreviousResult(previousResult, question);
+                } else {
+                    // 결과 영역 초기화
+                    document.getElementById('result-area').classList.add('hidden');
+                    document.getElementById('explanation-btn').classList.add('hidden');
+                }
+                
+                console.log('해상보험 문제 표시:', question.QCODE, '이전 결과:', previousResult);
+            },
+
+            // 이전 결과 표시
+            showPreviousResult: function(previousResult, question) {
+                const resultArea = document.getElementById('result-area');
+                const resultMessage = document.getElementById('result-message');
+                
+                resultArea.classList.remove('hidden');
+                
+                if (previousResult.isCorrect) {
+                    resultMessage.className = 'p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg';
+                    resultMessage.innerHTML = `
+                        <div class="font-bold mb-2">✅ 이전에 정답입니다!</div>
+                        <div class="text-sm">선택한 답안: ${previousResult.selectedAnswer}</div>
+                        <div class="text-sm">정답: ${question.ANSWER}</div>
+                        <div class="text-xs text-gray-500 mt-2">풀이 시간: ${new Date(previousResult.timestamp).toLocaleString()}</div>
+                    `;
+                } else {
+                    resultMessage.className = 'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg';
+                    resultMessage.innerHTML = `
+                        <div class="font-bold mb-2">❌ 이전에 오답입니다.</div>
+                        <div class="text-sm">선택한 답안: ${previousResult.selectedAnswer}</div>
+                        <div class="text-sm">정답: ${question.ANSWER}</div>
+                        <div class="text-xs text-gray-500 mt-2">풀이 시간: ${new Date(previousResult.timestamp).toLocaleString()}</div>
+                    `;
+                }
+
+                // 해설 버튼 표시 (해설이 있는 경우)
+                if (question.EXPLAIN) {
+                    document.getElementById('explanation-btn').classList.remove('hidden');
+                }
+            },
+
+            // 답안 버튼 생성
+            createAnswerButtons: function(question) {
+                const buttonsContainer = document.getElementById('answer-buttons');
+                buttonsContainer.innerHTML = '';
+
+                if (question.TYPE === '진위형') {
+                    const oButton = document.createElement('button');
+                    oButton.className = 'answer-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg';
+                    oButton.textContent = 'O';
+                    oButton.onclick = () => this.selectAnswer('O');
+                    buttonsContainer.appendChild(oButton);
+
+                    const xButton = document.createElement('button');
+                    xButton.className = 'answer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg';
+                    xButton.textContent = 'X';
+                    xButton.onclick = () => this.selectAnswer('X');
+                    buttonsContainer.appendChild(xButton);
+                } else {
+                    // 객관식 처리
+                    const answers = ['1', '2', '3', '4'];
+                    answers.forEach(answer => {
+                        const button = document.createElement('button');
+                        button.className = 'answer-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg';
+                        button.textContent = answer;
+                        button.onclick = () => this.selectAnswer(answer);
+                        buttonsContainer.appendChild(button);
+                    });
+                }
+            },
+
+            // 답안 선택
+            selectAnswer: function(answer) {
+                this.data.selectedAnswer = answer;
+                
+                // 모든 답안 버튼 비활성화
+                document.querySelectorAll('.answer-btn').forEach(btn => {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50');
+                });
+                
+                // 선택된 답안 버튼 강조
+                event.target.classList.remove('opacity-50');
+                event.target.classList.add('ring-4', 'ring-blue-300');
+                
+                console.log('해상보험 답안 선택:', answer);
+            },
+
+            // 정답 확인
+            checkAnswer: function() {
+                if (!this.data.selectedAnswer) {
+                    alert('답안을 선택해주세요.');
+                    return;
+                }
+
+                const question = this.data.questions[this.data.currentQuestionIndex];
+                const isCorrect = this.data.selectedAnswer === question.ANSWER;
+                
+                this.data.completedQuestions++;
+                if (isCorrect) {
+                    this.data.correctAnswers++;
+                }
+
+                // 현재 문제의 진행상황 저장
+                this.data.sessionProgress[this.data.currentQuestionIndex] = {
+                    isCorrect: isCorrect,
+                    selectedAnswer: this.data.selectedAnswer,
+                    timestamp: new Date().toISOString()
+                };
+
+                // 마지막 완료된 문제 인덱스 업데이트
+                this.data.lastCompletedIndex = this.data.currentQuestionIndex;
+
+                this.showResult(isCorrect, question);
+                this.updateStats();
+                this.saveProgress(); // 진행상황 저장
+                
+                console.log('해상보험 정답 확인:', {
+                    selected: this.data.selectedAnswer,
+                    correct: question.ANSWER,
+                    isCorrect: isCorrect,
+                    completedQuestions: this.data.completedQuestions,
+                    correctAnswers: this.data.correctAnswers
+                });
+            },
+
+            // 결과 표시
+            showResult: function(isCorrect, question) {
+                const resultArea = document.getElementById('result-area');
+                const resultMessage = document.getElementById('result-message');
+                
+                resultArea.classList.remove('hidden');
+                
+                if (isCorrect) {
+                    resultMessage.className = 'p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg';
+                    resultMessage.innerHTML = `
+                        <div class="font-bold mb-2">✅ 정답입니다!</div>
+                        <div class="text-sm">선택한 답안: ${this.data.selectedAnswer}</div>
+                        <div class="text-sm">정답: ${question.ANSWER}</div>
+                    `;
+                } else {
+                    resultMessage.className = 'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg';
+                    resultMessage.innerHTML = `
+                        <div class="font-bold mb-2">❌ 오답입니다.</div>
+                        <div class="text-sm">선택한 답안: ${this.data.selectedAnswer}</div>
+                        <div class="text-sm">정답: ${question.ANSWER}</div>
+                    `;
+                }
+
+                // 해설 버튼 표시 (해설이 있는 경우)
+                if (question.EXPLAIN) {
+                    document.getElementById('explanation-btn').classList.remove('hidden');
+                }
+            },
+
+            // 해설 보기
+            showExplanation: function() {
+                const question = this.data.questions[this.data.currentQuestionIndex];
+                if (question.EXPLAIN) {
+                    const resultMessage = document.getElementById('result-message');
+                    resultMessage.innerHTML += `
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="font-bold text-blue-800 mb-2">📖 해설</div>
+                            <div class="text-sm text-blue-700">${question.EXPLAIN}</div>
+                        </div>
+                    `;
+                }
+            },
+
+            // 다음 문제
+            nextQuestion: function() {
+                if (this.data.currentQuestionIndex < this.data.questions.length - 1) {
+                    this.data.currentQuestionIndex++;
+                    this.data.selectedAnswer = null;
+                    this.showQuestion();
+                } else {
+                    alert('모든 문제를 완료했습니다!');
+                }
+            },
+
+            // 이전 문제
+            prevQuestion: function() {
+                if (this.data.currentQuestionIndex > 0) {
+                    this.data.currentQuestionIndex--;
+                    this.data.selectedAnswer = null;
+                    this.showQuestion();
+                }
+            },
+
+            // 진행상황 초기화
+            resetProgress: function() {
+                if (confirm('모든 진행상황을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                    // 로컬스토리지에서 진행상황 삭제
+                    localStorage.removeItem('marineInsuranceProgress');
+                    
+                    // 데이터 초기화
+                    this.data.completedQuestions = 0;
+                    this.data.correctAnswers = 0;
+                    this.data.currentQuestionIndex = 0;
+                    this.data.selectedAnswer = null;
+                    this.data.isFirstTime = true;
+                    this.data.lastCompletedIndex = -1;
+                    this.data.sessionProgress = {};
+                    
+                    // 통계 업데이트 및 첫 문제 표시
+                    this.updateStats();
+                    this.showQuestion();
+                    
+                    console.log('해상보험 진행상황 초기화 완료');
+                }
+            }
+        };
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            MarineInsuranceTest.init();
+            
+            // 학습 모드 변경 이벤트 리스너 추가
+            document.querySelectorAll('input[name="learning-mode"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const learningMode = this.value;
+                    console.log('학습 모드 변경:', learningMode);
+                    
+                    if (learningMode === 'restart') {
+                        // 처음부터 풀기: 진행상황 초기화
+                        MarineInsuranceTest.resetProgress();
+                        MarineInsuranceTest.data.currentQuestionIndex = 0;
+                        MarineInsuranceTest.data.selectedAnswer = null;
+                        MarineInsuranceTest.data.completedQuestions = 0;
+                        MarineInsuranceTest.data.correctAnswers = 0;
+                        MarineInsuranceTest.data.sessionProgress = {};
+                        MarineInsuranceTest.updateStats();
+                        MarineInsuranceTest.showQuestion();
+                        console.log('해상보험 진행상황 초기화 완료');
+                    } else {
+                        // 이어풀기: 진행상황 로드
+                        MarineInsuranceTest.loadProgress();
+                        MarineInsuranceTest.updateStats();
+                        MarineInsuranceTest.showQuestion();
+                        console.log('해상보험 진행상황 로드 완료');
+                    }
+                });
+            });
+        };
+    </script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 헤더 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800">해상보험 모듈 테스트</h1>
+                    <div class="text-sm text-gray-600">
+                        <span id="error-message" class="text-red-600"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학습 모드 선택 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 모드 선택</h2>
+                <div class="flex space-x-6">
+                    <label class="flex items-center">
+                        <input type="radio" name="learning-mode" value="continue" checked class="mr-2">
+                        <span class="text-blue-700 font-medium">🔄 이어풀기 (기본)</span>
+                        <span class="text-sm text-gray-600 ml-2">- 마지막 완료 지점부터 시작</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="learning-mode" value="restart" class="mr-2">
+                        <span class="text-orange-700 font-medium">🔄 처음부터 풀기</span>
+                        <span class="text-sm text-gray-600 ml-2">- 모든 진행상황 초기화</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 통계 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">진행률</h3>
+                    <p class="text-2xl font-bold text-blue-600" id="progress-percent">0%</p>
+                    <p class="text-sm text-gray-600" id="completed-text">총 0문제 중 0문제 완료</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">정답률</h3>
+                    <p class="text-2xl font-bold text-green-600" id="accuracy-percent">0%</p>
+                    <p class="text-sm text-gray-600" id="correct-text">풀이 0문제 중 0문제 정답</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">문제 정보</h3>
+                    <p class="text-2xl font-bold text-orange-600" id="total-count">0</p>
+                    <p class="text-sm text-gray-600">해상보험 문제 수</p>
+                </div>
+            </div>
+
+            <!-- 문제 영역 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-600" id="question-type">진위형</span>
+                        <span class="text-sm text-gray-600" id="question-code">ABANK-0001</span>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span id="layer-info">09해상보험 > 해상보험</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">문제</h3>
+                    <p class="text-gray-700 leading-relaxed" id="question-text">
+                        해상보험 문제를 로드하는 중입니다...
+                    </p>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">답안 선택</h3>
+                    <div id="answer-buttons" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    </div>
+                </div>
+
+                <div id="result-area" class="hidden mb-6">
+                    <div class="p-4 rounded-lg" id="result-message">
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button onclick="MarineInsuranceTest.prevQuestion()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
+                        이전 문제
+                    </button>
+                    <div class="flex space-x-2">
+                        <button onclick="MarineInsuranceTest.checkAnswer()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                            정답 확인
+                        </button>
+                        <button onclick="MarineInsuranceTest.showExplanation()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg hidden" id="explanation-btn">
+                            해설 보기
+                        </button>
+                        <button onclick="MarineInsuranceTest.resetProgress()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">
+                            진행상황 초기화
+                        </button>
+                    </div>
+                    <button onclick="MarineInsuranceTest.nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                        다음 문제
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

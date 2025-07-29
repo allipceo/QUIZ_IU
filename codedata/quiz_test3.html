@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습 현황 카운팅 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .stats-section {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .question-area {
+            border: 2px solid #007bff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .answer-button {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .answer-button:hover {
+            background-color: #1e7e34;
+        }
+        .answer-button.selected {
+            background-color: #ffc107;
+            color: black;
+        }
+        .result-area {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>학습 현황 카운팅 테스트</h1>
+    
+    <!-- 대문 학습진도 현황 -->
+    <div class="stats-section">
+        <h2>대문 학습진도 현황</h2>
+        <p>전체 진도율: <span id="learning-progress">0%</span></p>
+        <p>완료한 문제: <span id="completed-questions">0</span> / <span id="total-questions">100</span></p>
+    </div>
+    
+    <!-- 기본학습 학습현황 -->
+    <div class="stats-section">
+        <h2>기본학습 학습현황</h2>
+        <p>풀이문제수: <span id="basic-solved-count">0</span></p>
+        <p>학습성과: <span id="basic-performance">0%</span></p>
+        <p>오늘의 통계: <span id="today-stats">0%</span></p>
+    </div>
+    
+    <!-- 문제 풀이 영역 -->
+    <div class="question-area">
+        <h3>문제 풀이 테스트</h3>
+        <p id="question-text">테스트 문제입니다. 정답을 선택해주세요.</p>
+        <p>문제 번호: <span id="question-code">TEST-001</span></p>
+        
+        <div id="answer-buttons">
+            <button class="answer-button" data-answer="O">O</button>
+            <button class="answer-button" data-answer="X">X</button>
+        </div>
+        
+        <div id="result-area" class="hidden">
+            <div id="result-message"></div>
+        </div>
+        
+        <button class="button" onclick="checkAnswer()">정답 확인</button>
+        <button class="button" onclick="nextQuestion()">다음 문제</button>
+        <button class="button" onclick="resetStats()">통계 초기화</button>
+        <button class="button" onclick="refreshStats()" style="background-color: #28a745;">통계 새로고침</button>
+    </div>
+    
+    <script>
+        // 전역 변수
+        let currentQuestionIndex = 0;
+        let selectedAnswer = null;
+        let isAnswerChecked = false;
+        
+        // 테스트 문제 데이터
+        const testQuestions = [
+            { QCODE: 'TEST-001', QUESTION: '보험은 위험을 분산시키는 기능을 한다.', ANSWER: 'O' },
+            { QCODE: 'TEST-002', QUESTION: '재산보험은 사람의 생명을 보장한다.', ANSWER: 'X' },
+            { QCODE: 'TEST-003', QUESTION: '해상보험은 육상운송을 보장한다.', ANSWER: 'X' },
+            { QCODE: 'TEST-004', QUESTION: '자동차보험은 의무가입보험이다.', ANSWER: 'O' },
+            { QCODE: 'TEST-005', QUESTION: '화재보험은 자연재해를 보장하지 않는다.', ANSWER: 'X' }
+        ];
+        
+        // 초기화
+        function init() {
+            displayCurrentQuestion();
+            updateStats();
+        }
+        
+        // 현재 문제 표시
+        function displayCurrentQuestion() {
+            const question = testQuestions[currentQuestionIndex];
+            document.getElementById('question-text').textContent = question.QUESTION;
+            document.getElementById('question-code').textContent = question.QCODE;
+            
+            // 답안 버튼 초기화
+            resetAnswerButtons();
+            
+            // 결과 영역 숨기기
+            document.getElementById('result-area').classList.add('hidden');
+            
+            selectedAnswer = null;
+            isAnswerChecked = false;
+        }
+        
+        // 답안 버튼 초기화
+        function resetAnswerButtons() {
+            const buttons = document.querySelectorAll('.answer-button');
+            buttons.forEach(button => {
+                button.classList.remove('selected');
+            });
+        }
+        
+        // 답안 선택
+        function selectAnswer(answer) {
+            selectedAnswer = answer;
+            
+            // 버튼 스타일 업데이트
+            const buttons = document.querySelectorAll('.answer-button');
+            buttons.forEach(button => {
+                button.classList.remove('selected');
+                if (button.getAttribute('data-answer') === answer) {
+                    button.classList.add('selected');
+                }
+            });
+        }
+        
+        // 정답 확인
+        function checkAnswer() {
+            if (!selectedAnswer) {
+                alert('답안을 선택해주세요.');
+                return;
+            }
+            
+            const question = testQuestions[currentQuestionIndex];
+            const isCorrect = selectedAnswer === question.ANSWER;
+            
+            // 결과 표시
+            const resultArea = document.getElementById('result-area');
+            const resultMessage = document.getElementById('result-message');
+            
+            if (isCorrect) {
+                resultMessage.className = 'correct';
+                resultMessage.innerHTML = '✅ 정답입니다!';
+            } else {
+                resultMessage.className = 'incorrect';
+                resultMessage.innerHTML = `❌ 틀렸습니다. 정답: ${question.ANSWER}`;
+            }
+            
+            resultArea.classList.remove('hidden');
+            isAnswerChecked = true;
+            
+            // 학습 이력 저장
+            saveLearningHistory(isCorrect);
+            
+            // 통계 업데이트
+            updateStats();
+        }
+        
+        // 다음 문제
+        function nextQuestion() {
+            if (currentQuestionIndex < testQuestions.length - 1) {
+                currentQuestionIndex++;
+                displayCurrentQuestion();
+            } else {
+                alert('마지막 문제입니다.');
+            }
+        }
+        
+        // 학습 이력 저장
+        function saveLearningHistory(isCorrect) {
+            const question = testQuestions[currentQuestionIndex];
+            
+            const learningData = {
+                qcode: question.QCODE,
+                timestamp: new Date().toISOString(),
+                isCorrect: isCorrect,
+                mode: 'test'
+            };
+            
+            let history = JSON.parse(localStorage.getItem('test_learning_history')) || [];
+            history.push(learningData);
+            localStorage.setItem('test_learning_history', JSON.stringify(history));
+            
+            console.log('학습 이력 저장됨:', learningData);
+        }
+        
+        // 통계 업데이트
+        function updateStats() {
+            console.log('updateStats 함수 시작...');
+            
+            const history = JSON.parse(localStorage.getItem('test_learning_history')) || [];
+            console.log('로드된 학습 이력:', history);
+            
+            // 오늘 날짜 계산
+            const today = new Date().toDateString();
+            const todayHistory = history.filter(item => 
+                new Date(item.timestamp).toDateString() === today
+            );
+            console.log('오늘 날짜:', today);
+            console.log('오늘 학습 이력:', todayHistory);
+            
+            // 전체 통계
+            const totalSolved = history.length;
+            const totalCorrect = history.filter(item => item.isCorrect).length;
+            const totalAccuracy = totalSolved > 0 ? Math.round((totalCorrect / totalSolved) * 100) : 0;
+            
+            // 오늘 통계
+            const todaySolved = todayHistory.length;
+            const todayCorrect = todayHistory.filter(item => item.isCorrect).length;
+            const todayAccuracy = todaySolved > 0 ? Math.round((todayCorrect / todaySolved) * 100) : 0;
+            
+            // 대문 학습진도 현황 업데이트
+            const totalQuestions = 100; // 전체 문제 수 (가정)
+            const progressRate = totalQuestions > 0 ? Math.round((totalSolved / totalQuestions) * 100) : 0;
+            
+            console.log('UI 업데이트 시작...');
+            
+            // DOM 요소 찾기 및 업데이트
+            const learningProgress = document.getElementById('learning-progress');
+            const completedQuestions = document.getElementById('completed-questions');
+            const totalQuestionsElement = document.getElementById('total-questions');
+            const basicSolvedCount = document.getElementById('basic-solved-count');
+            const basicPerformance = document.getElementById('basic-performance');
+            const todayStats = document.getElementById('today-stats');
+            
+            if (learningProgress) {
+                learningProgress.textContent = progressRate + '%';
+                console.log('학습진도 업데이트:', progressRate + '%');
+            } else {
+                console.error('learning-progress 요소를 찾을 수 없습니다.');
+            }
+            
+            if (completedQuestions) {
+                completedQuestions.textContent = totalSolved;
+                console.log('완료한 문제 업데이트:', totalSolved);
+            } else {
+                console.error('completed-questions 요소를 찾을 수 없습니다.');
+            }
+            
+            if (totalQuestionsElement) {
+                totalQuestionsElement.textContent = totalQuestions;
+                console.log('전체 문제 업데이트:', totalQuestions);
+            } else {
+                console.error('total-questions 요소를 찾을 수 없습니다.');
+            }
+            
+            if (basicSolvedCount) {
+                basicSolvedCount.textContent = totalSolved;
+                console.log('기본학습 풀이문제수 업데이트:', totalSolved);
+            } else {
+                console.error('basic-solved-count 요소를 찾을 수 없습니다.');
+            }
+            
+            if (basicPerformance) {
+                basicPerformance.textContent = totalAccuracy + '%';
+                console.log('기본학습 학습성과 업데이트:', totalAccuracy + '%');
+            } else {
+                console.error('basic-performance 요소를 찾을 수 없습니다.');
+            }
+            
+            if (todayStats) {
+                todayStats.textContent = todayAccuracy + '%';
+                console.log('오늘의 통계 업데이트:', todayAccuracy + '%');
+            } else {
+                console.error('today-stats 요소를 찾을 수 없습니다.');
+            }
+            
+            console.log('통계 업데이트 완료:', {
+                totalSolved,
+                totalCorrect,
+                totalAccuracy,
+                todaySolved,
+                todayCorrect,
+                todayAccuracy,
+                progressRate
+            });
+        }
+        
+        // 통계 초기화
+        function resetStats() {
+            localStorage.removeItem('test_learning_history');
+            updateStats();
+            alert('통계가 초기화되었습니다.');
+        }
+        
+        // 통계 새로고침
+        function refreshStats() {
+            console.log('통계 새로고침 시작...');
+            
+            // localStorage에서 현재 데이터 확인
+            const history = JSON.parse(localStorage.getItem('test_learning_history')) || [];
+            console.log('현재 저장된 학습 이력:', history);
+            
+            // 통계 업데이트
+            updateStats();
+            
+            alert(`통계가 새로고침되었습니다.\n저장된 문제 수: ${history.length}개`);
+        }
+        
+        // 답안 버튼 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            const answerButtons = document.querySelectorAll('.answer-button');
+            answerButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const answer = this.getAttribute('data-answer');
+                    selectAnswer(answer);
+                });
+            });
+            
+            init();
+        });
+    </script>
+</body>
+</html> 
