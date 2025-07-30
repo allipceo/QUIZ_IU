@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICU QUIZ 앱 v3.0</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Papa Parse 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        /* 기본 스타일 */
+        .hidden {
+            display: none !important;
+        }
+        
+        .answer-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .answer-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 기본 컨테이너 -->
+    <div id="app" class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+            AICU QUIZ 앱 v3.0
+        </h1>
+        
+        <!-- 홈 화면 (모듈 3.1) -->
+        <div id="home-screen" class="bg-white rounded-lg shadow-md p-8">
+            <!-- 첫 번째 박스 - D-day 카운터와 명언 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <!-- 상단 정보 -->
+                <div class="flex justify-between items-start mb-6">
+                    <!-- 좌측상단: 사용자명과 시험명 -->
+                    <div class="text-left">
+                        <div class="text-lg font-semibold text-gray-800" id="user-name-display">사용자: 조대표님</div>
+                        <div class="text-sm text-gray-600">시험명: ACIU</div>
+                    </div>
+                    
+                    <!-- 우측상단: 시험일 -->
+                    <div class="text-right">
+                        <div class="text-sm text-gray-600">시험일</div>
+                        <div class="text-lg font-semibold text-gray-800" id="exam-date-display">2025년 12월 15일</div>
+                    </div>
+                </div>
+                
+                <!-- D-day 카운터 -->
+                <div class="text-center mb-6">
+                    <div class="text-6xl font-bold text-blue-600 mb-2" id="d-day-display">D-138일</div>
+                    <div class="text-sm text-gray-600">시험까지 남은 일수</div>
+                </div>
+                
+                <!-- 오늘의 명언 -->
+                <div class="text-center">
+                    <p class="text-3xl text-gray-700 italic font-medium" id="quote-of-day">
+                        "꾸준함이 최고의 재능입니다."
+                    </p>
+                </div>
+            </div>
+
+            <!-- 설정 버튼과 통계 데이터 불러오기 버튼 -->
+            <div class="flex justify-end mb-4 space-x-3">
+                <button onclick="loadStatisticsData()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm">
+                    📊 통계 데이터 불러오기
+                </button>
+                <button onclick="openUserSettings()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm">
+                    ⚙️ 설정
+                </button>
+            </div>
+
+            <!-- 보유 문제수 현황 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">보유 문제수 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="ins-questions">0</div>
+                        <div class="text-sm text-gray-600">인스교재</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="exam-questions">0</div>
+                        <div class="text-sm text-gray-600">보험중개사시험</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" id="total-questions">0</div>
+                        <div class="text-sm text-gray-600">합계</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학습 진도 현황 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 진도 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="completed-questions">0</div>
+                        <div class="text-sm text-gray-600">완료한 문제</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="progress-rate">0%</div>
+                        <div class="text-sm text-gray-600">전체 진도율</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600" id="accuracy-rate">0%</div>
+                        <div class="text-sm text-gray-600">정답률</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 금일 학습 현황 (조대표님 요구사항 3번) -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">금일 학습 현황</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="today-total">0</div>
+                        <div class="text-sm text-gray-600">오늘 총 문제수</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="today-correct">0</div>
+                        <div class="text-sm text-gray-600">오늘 정답수</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600" id="today-accuracy">0%</div>
+                        <div class="text-sm text-gray-600">오늘 정답률</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학습 모드 선택 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">학습 모드 선택</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="startBasicLearning()" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-lg font-semibold transition-colors">
+                        📚 기본학습
+                    </button>
+                    <button onclick="startLargeCategoryLearning()" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-lg font-semibold transition-colors">
+                        🎯 대분류학습
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기본학습 화면 (모듈 3.2) -->
+        <div id="basic-learning-screen" class="hidden bg-white rounded-lg shadow-md p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">기본학습</h2>
+                <button onclick="goHome()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    ← 홈으로
+                </button>
+            </div>
+
+            <!-- 기본학습 통계 (누적/금일 구분) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- 누적현황 -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-blue-800 mb-3">누적현황</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600" id="basic-cumulative-total">0</div>
+                            <div class="text-sm text-gray-600">총 문제수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600" id="basic-cumulative-correct">0</div>
+                            <div class="text-sm text-gray-600">정답수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600" id="basic-cumulative-accuracy">0%</div>
+                            <div class="text-sm text-gray-600">정답률</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 금일현황 -->
+                <div class="bg-green-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-green-800 mb-3">금일현황</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600" id="basic-daily-total">0</div>
+                            <div class="text-sm text-gray-600">오늘 문제수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600" id="basic-daily-correct">0</div>
+                            <div class="text-sm text-gray-600">오늘 정답수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600" id="basic-daily-accuracy">0%</div>
+                            <div class="text-sm text-gray-600">오늘 정답률</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 문제 표시 영역 -->
+            <div id="question-container" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="text-center">
+                    <p class="text-lg text-gray-600 mb-4">학습 모드를 선택하세요</p>
+                </div>
+            </div>
+
+            <!-- 답안 버튼 영역 -->
+            <div id="answer-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 답안 버튼들이 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+
+        <!-- 대분류학습 화면 (모듈 3.3) -->
+        <div id="large-category-learning-screen" class="hidden bg-white rounded-lg shadow-md p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">대분류학습</h2>
+                <button onclick="goHome()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    ← 홈으로
+                </button>
+            </div>
+
+            <!-- 대분류학습 전체 누적 통계 -->
+            <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                <h3 class="text-lg font-semibold text-blue-800 mb-3">대분류학습 전체 누적 통계</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-blue-600" id="large-cumulative-total">0</div>
+                        <div class="text-sm text-gray-600">총 문제수</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-green-600" id="large-cumulative-correct">0</div>
+                        <div class="text-sm text-gray-600">정답수</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-orange-600" id="large-cumulative-accuracy">0%</div>
+                        <div class="text-sm text-gray-600">정답률</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 카테고리 선택 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <button onclick="selectCategory('재산보험')" class="category-btn bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-lg font-semibold">재산보험</div>
+                    <div class="text-sm opacity-90">Property Insurance</div>
+                </button>
+                <button onclick="selectCategory('특종보험')" class="category-btn bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-lg font-semibold">특종보험</div>
+                    <div class="text-sm opacity-90">Special Insurance</div>
+                </button>
+                <button onclick="selectCategory('배상책임보험')" class="category-btn bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-lg font-semibold">배상책임보험</div>
+                    <div class="text-sm opacity-90">Liability Insurance</div>
+                </button>
+                <button onclick="selectCategory('해상보험')" class="category-btn bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg text-center transition-colors">
+                    <div class="text-lg font-semibold">해상보험</div>
+                    <div class="text-sm opacity-90">Marine Insurance</div>
+                </button>
+            </div>
+
+            <!-- 선택된 카테고리 통계 -->
+            <div id="category-stats" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 id="selected-category-title" class="text-xl font-semibold text-gray-800 mb-4">카테고리 통계</h3>
+                
+                <!-- 누적/금일 구분 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 누적현황 -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="text-lg font-semibold text-blue-800 mb-3">누적현황</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-blue-600" id="category-cumulative-total">0</div>
+                                <div class="text-sm text-gray-600">총 문제수</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-green-600" id="category-cumulative-correct">0</div>
+                                <div class="text-sm text-gray-600">정답수</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-orange-600" id="category-cumulative-accuracy">0%</div>
+                                <div class="text-sm text-gray-600">정답률</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 금일현황 -->
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <h4 class="text-lg font-semibold text-green-800 mb-3">금일현황</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-blue-600" id="category-daily-total">0</div>
+                                <div class="text-sm text-gray-600">오늘 문제수</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-green-600" id="category-daily-correct">0</div>
+                                <div class="text-sm text-gray-600">오늘 정답수</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-bold text-orange-600" id="category-daily-accuracy">0%</div>
+                                <div class="text-sm text-gray-600">오늘 정답률</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 문제 표시 영역 -->
+            <div id="category-question-container" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="text-center">
+                    <p class="text-lg text-gray-600 mb-4">카테고리를 선택하세요</p>
+                </div>
+            </div>
+
+            <!-- 답안 버튼 영역 -->
+            <div id="category-answer-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 답안 버튼들이 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 사용자 설정 모달 -->
+    <div id="user-settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">사용자 설정</h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">사용자명</label>
+                <input type="text" id="user-name-input" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">시험일</label>
+                <input type="date" id="exam-date-input" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">연락처</label>
+                <input type="text" id="user-phone-input" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeUserSettings()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    취소
+                </button>
+                <button onclick="saveUserSettings()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    저장
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 간소화된 통계 시스템 (v2.0에서 채용) =====
+        
+        // 전역 변수
+        let statistics = null;
+        let isUserRegistered = false;
+        let currentMode = null;
+        let currentCategory = null;
+        let currentQuestion = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        
+        // 간소화된 통계 초기화
+        const initStatistics = () => ({
+            meta: {
+                version: "3.0",
+                userName: null,
+                registeredAt: null,
+                dataStartDate: null,
+                lastUpdated: new Date().toISOString()
+            },
+            questionCounts: {
+                "인스교재": 700,
+                "보험중개사시험": 679,
+                "total": 1379
+            },
+            global: {
+                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                daily: { attempted: 0, correct: 0, accuracy: 0 }
+            },
+            modes: {
+                basic: {
+                    cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                    daily: { attempted: 0, correct: 0, accuracy: 0 }
+                },
+                categories: {
+                    "재산보험": { cumulative: { attempted: 0, correct: 0, accuracy: 0 }, daily: { attempted: 0, correct: 0, accuracy: 0 } },
+                    "특종보험": { cumulative: { attempted: 0, correct: 0, accuracy: 0 }, daily: { attempted: 0, correct: 0, accuracy: 0 } },
+                    "배상책임보험": { cumulative: { attempted: 0, correct: 0, accuracy: 0 }, daily: { attempted: 0, correct: 0, accuracy: 0 } },
+                    "해상보험": { cumulative: { attempted: 0, correct: 0, accuracy: 0 }, daily: { attempted: 0, correct: 0, accuracy: 0 } }
+                },
+                largeCategoryTotal: {
+                    cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                    daily: { attempted: 0, correct: 0, accuracy: 0 }
+                }
+            }
+        });
+
+        // 재활용 가능한 핵심 함수들
+        function calculateAccuracy(correct, total) {
+            return total > 0 ? Math.round((correct / total) * 100) : 0;
+        }
+
+        function calculateProgress(completed, total) {
+            return total > 0 ? Math.round((completed / total) * 100) : 0;
+        }
+
+        function generateUserKey(userName, userPhone) {
+            return `${userName}_${userPhone}`.replace(/[^a-zA-Z0-9_]/g, '');
+        }
+
+        function getTodayKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // 통계 업데이트 함수 (재활용 가능)
+        function updateStatistics(isCorrect, mode, category = null) {
+            if (!isUserRegistered || !statistics) return;
+            
+            const today = getTodayKey();
+            
+            // 전역 통계 업데이트
+            statistics.global.cumulative.attempted++;
+            statistics.global.daily.attempted++;
+            
+            if (isCorrect) {
+                statistics.global.cumulative.correct++;
+                statistics.global.daily.correct++;
+            }
+            
+            // 모드별 통계 업데이트
+            if (mode === 'basic') {
+                updateModeStatistics(statistics.modes.basic, isCorrect);
+            } else if (mode === 'largeCategory') {
+                updateModeStatistics(statistics.modes.largeCategoryTotal, isCorrect);
+                if (category && statistics.modes.categories[category]) {
+                    updateModeStatistics(statistics.modes.categories[category], isCorrect);
+                }
+            }
+            
+            // 정확도 재계산
+            statistics.global.cumulative.accuracy = calculateAccuracy(statistics.global.cumulative.correct, statistics.global.cumulative.attempted);
+            statistics.global.daily.accuracy = calculateAccuracy(statistics.global.daily.correct, statistics.global.daily.attempted);
+            
+            // 마지막 업데이트 시간 기록
+            statistics.meta.lastUpdated = new Date().toISOString();
+            
+            // 저장
+            saveStatistics();
+            
+            // UI 업데이트
+            updateAllDisplays();
+        }
+
+        // 모드별 통계 업데이트 (재활용 가능)
+        function updateModeStatistics(modeStats, isCorrect) {
+            modeStats.cumulative.attempted++;
+            modeStats.daily.attempted++;
+            
+            if (isCorrect) {
+                modeStats.cumulative.correct++;
+                modeStats.daily.correct++;
+            }
+            
+            modeStats.cumulative.accuracy = calculateAccuracy(modeStats.cumulative.correct, modeStats.cumulative.attempted);
+            modeStats.daily.accuracy = calculateAccuracy(modeStats.daily.correct, modeStats.daily.attempted);
+        }
+
+        // 저장/로드 함수 (간소화)
+        function saveStatistics() {
+            if (!isUserRegistered || !statistics) return;
+            
+            const userKey = generateUserKey(statistics.meta.userName, statistics.meta.userPhone);
+            localStorage.setItem(`aciu_statistics_${userKey}`, JSON.stringify(statistics));
+        }
+
+        function loadStatistics() {
+            if (!isUserRegistered) return;
+            
+            const userKey = generateUserKey(statistics.meta.userName, statistics.meta.userPhone);
+            const saved = localStorage.getItem(`aciu_statistics_${userKey}`);
+            
+            if (saved) {
+                statistics = JSON.parse(saved);
+            } else {
+                statistics = initStatistics();
+                statistics.meta.userName = document.getElementById('user-name-input').value;
+                statistics.meta.userPhone = document.getElementById('user-phone-input').value;
+                statistics.meta.registeredAt = new Date().toISOString();
+                statistics.meta.dataStartDate = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        // UI 업데이트 함수들
+        function updateAllDisplays() {
+            updateHomeStatistics();
+            updateModeStatisticsDisplay();
+        }
+
+        function updateHomeStatistics() {
+            if (!statistics) return;
+            
+            // 보유 문제수 현황
+            document.getElementById('ins-questions').textContent = statistics.questionCounts["인스교재"];
+            document.getElementById('exam-questions').textContent = statistics.questionCounts["보험중개사시험"];
+            document.getElementById('total-questions').textContent = statistics.questionCounts.total;
+            
+            // 학습 진도 현황
+            document.getElementById('completed-questions').textContent = statistics.global.cumulative.attempted;
+            document.getElementById('progress-rate').textContent = calculateProgress(statistics.global.cumulative.attempted, statistics.questionCounts.total) + '%';
+            document.getElementById('accuracy-rate').textContent = statistics.global.cumulative.accuracy + '%';
+            
+            // 금일 학습 현황
+            document.getElementById('today-total').textContent = statistics.global.daily.attempted;
+            document.getElementById('today-correct').textContent = statistics.global.daily.correct;
+            document.getElementById('today-accuracy').textContent = statistics.global.daily.accuracy + '%';
+        }
+
+        function updateModeStatisticsDisplay() {
+            if (!statistics) return;
+            
+            // 기본학습 통계
+            document.getElementById('basic-cumulative-total').textContent = statistics.modes.basic.cumulative.attempted;
+            document.getElementById('basic-cumulative-correct').textContent = statistics.modes.basic.cumulative.correct;
+            document.getElementById('basic-cumulative-accuracy').textContent = statistics.modes.basic.cumulative.accuracy + '%';
+            
+            document.getElementById('basic-daily-total').textContent = statistics.modes.basic.daily.attempted;
+            document.getElementById('basic-daily-correct').textContent = statistics.modes.basic.daily.correct;
+            document.getElementById('basic-daily-accuracy').textContent = statistics.modes.basic.daily.accuracy + '%';
+            
+            // 대분류학습 전체 통계
+            document.getElementById('large-cumulative-total').textContent = statistics.modes.largeCategoryTotal.cumulative.attempted;
+            document.getElementById('large-cumulative-correct').textContent = statistics.modes.largeCategoryTotal.cumulative.correct;
+            document.getElementById('large-cumulative-accuracy').textContent = statistics.modes.largeCategoryTotal.cumulative.accuracy + '%';
+            
+            // 카테고리별 통계 (선택된 카테고리가 있을 때만)
+            if (currentCategory && statistics.modes.categories[currentCategory]) {
+                const categoryStats = statistics.modes.categories[currentCategory];
+                document.getElementById('category-cumulative-total').textContent = categoryStats.cumulative.attempted;
+                document.getElementById('category-cumulative-correct').textContent = categoryStats.cumulative.correct;
+                document.getElementById('category-cumulative-accuracy').textContent = categoryStats.cumulative.accuracy + '%';
+                
+                document.getElementById('category-daily-total').textContent = categoryStats.daily.attempted;
+                document.getElementById('category-daily-correct').textContent = categoryStats.daily.correct;
+                document.getElementById('category-daily-accuracy').textContent = categoryStats.daily.accuracy + '%';
+            }
+        }
+
+        // ===== 기존 문제 풀이 기능 (절대 변경 금지) =====
+        
+        // 모드 설정 (절대 변경 금지)
+        const MODE_CONFIG = {
+            'continue': { name: '이어서 풀기', description: '이전에 풀던 문제부터 계속' },
+            'startFromScratch': { name: '처음부터 풀기', description: '처음부터 다시 시작' },
+            'randomSolve': { name: '랜덤 풀기', description: '무작위로 문제 선택' }
+        };
+
+        // 문제 표시 함수 (절대 변경 금지)
+        function displayQuestion(question) {
+            const container = currentMode === 'largeCategory' ? 
+                document.getElementById('category-question-container') : 
+                document.getElementById('question-container');
+            
+            container.innerHTML = `
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500 mb-2">문제 ${currentQuestionIndex + 1}</div>
+                    <p class="text-lg text-gray-800 leading-relaxed">${question.question}</p>
+                </div>
+            `;
+            
+            currentQuestion = question;
+            createAnswerButtons(question.answers);
+        }
+
+        // 답안 버튼 생성 함수 (절대 변경 금지)
+        function createAnswerButtons(answers) {
+            const container = currentMode === 'largeCategory' ? 
+                document.getElementById('category-answer-container') : 
+                document.getElementById('answer-container');
+            
+            container.innerHTML = '';
+            
+            answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn bg-white border-2 border-gray-300 rounded-lg p-4 text-left hover:border-blue-500 transition-colors';
+                button.textContent = `${String.fromCharCode(65 + index)}. ${answer}`;
+                button.onclick = () => checkAnswer(index);
+                container.appendChild(button);
+            });
+        }
+
+        // 정답 확인 함수 (통계 업데이트 부분만 수정)
+        function checkAnswer(selectedIndex) {
+            if (!currentQuestion) return;
+            
+            const isCorrect = selectedIndex === currentQuestion.correctAnswer;
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            // 버튼 상태 업데이트
+            buttons.forEach((button, index) => {
+                button.disabled = true;
+                if (index === currentQuestion.correctAnswer) {
+                    button.classList.add('border-green-500', 'bg-green-50');
+                } else if (index === selectedIndex && !isCorrect) {
+                    button.classList.add('border-red-500', 'bg-red-50');
+                }
+            });
+            
+            // 통계 업데이트 (새로운 간소화된 함수 사용)
+            if (isUserRegistered) {
+                updateStatistics(isCorrect, currentMode, currentCategory);
+            }
+            
+            // 다음 문제로 이동 (기존 로직 유지)
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    displayQuestion(questions[currentQuestionIndex]);
+                } else {
+                    showCompletionMessage();
+                }
+            }, 2000);
+        }
+
+        // ===== 기존 UI 함수들 (최소한의 수정) =====
+        
+        function startBasicLearning() {
+            currentMode = 'basic';
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('basic-learning-screen').classList.remove('hidden');
+            loadQuestions();
+        }
+
+        function startLargeCategoryLearning() {
+            currentMode = 'largeCategory';
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('large-category-learning-screen').classList.remove('hidden');
+        }
+
+        function selectCategory(category) {
+            currentCategory = category;
+            document.getElementById('selected-category-title').textContent = `${category} 통계`;
+            document.getElementById('category-stats').classList.remove('hidden');
+            loadCategoryQuestions(category);
+        }
+
+        function goHome() {
+            document.getElementById('home-screen').classList.remove('hidden');
+            document.getElementById('basic-learning-screen').classList.add('hidden');
+            document.getElementById('large-category-learning-screen').classList.add('hidden');
+            currentMode = null;
+            currentCategory = null;
+        }
+
+        function loadQuestions() {
+            // 기존 문제 로딩 로직 유지
+            Papa.parse('ins_master_db.csv', {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    questions = results.data.filter(q => q.question && q.question.trim() !== '');
+                    if (questions.length > 0) {
+                        currentQuestionIndex = 0;
+                        displayQuestion(questions[0]);
+                    }
+                }
+            });
+        }
+
+        function loadCategoryQuestions(category) {
+            const categoryFiles = {
+                '재산보험': 'ins_1db.csv',
+                '특종보험': 'ins_2db.csv',
+                '배상책임보험': 'ins_3db.csv',
+                '해상보험': 'ins_4db.csv'
+            };
+            
+            const fileName = categoryFiles[category];
+            if (fileName) {
+                Papa.parse(fileName, {
+                    download: true,
+                    header: true,
+                    complete: function(results) {
+                        questions = results.data.filter(q => q.question && q.question.trim() !== '');
+                        if (questions.length > 0) {
+                            currentQuestionIndex = 0;
+                            displayQuestion(questions[0]);
+                        }
+                    }
+                });
+            }
+        }
+
+        function showCompletionMessage() {
+            const container = currentMode === 'largeCategory' ? 
+                document.getElementById('category-question-container') : 
+                document.getElementById('question-container');
+            
+            container.innerHTML = `
+                <div class="text-center">
+                    <h3 class="text-xl font-semibold text-green-600 mb-4">학습 완료!</h3>
+                    <p class="text-gray-600 mb-4">모든 문제를 풀었습니다.</p>
+                    <button onclick="goHome()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">
+                        홈으로 돌아가기
+                    </button>
+                </div>
+            `;
+        }
+
+        // ===== 사용자 설정 관련 함수들 =====
+        
+        function openUserSettings() {
+            document.getElementById('user-settings-modal').classList.remove('hidden');
+            loadUserSettings();
+        }
+
+        function closeUserSettings() {
+            document.getElementById('user-settings-modal').classList.add('hidden');
+        }
+
+        function loadUserSettings() {
+            const savedName = localStorage.getItem('aicu_user_name') || '';
+            const savedDate = localStorage.getItem('aicu_exam_date') || '';
+            const savedPhone = localStorage.getItem('aicu_user_phone') || '';
+            
+            document.getElementById('user-name-input').value = savedName;
+            document.getElementById('exam-date-input').value = savedDate;
+            document.getElementById('user-phone-input').value = savedPhone;
+        }
+
+        function saveUserSettings() {
+            const userName = document.getElementById('user-name-input').value;
+            const examDate = document.getElementById('exam-date-input').value;
+            const userPhone = document.getElementById('user-phone-input').value;
+            
+            if (!userName || !examDate || !userPhone) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            // 기존 설정 저장
+            localStorage.setItem('aicu_user_name', userName);
+            localStorage.setItem('aicu_exam_date', examDate);
+            localStorage.setItem('aicu_user_phone', userPhone);
+            
+            // 사용자 등록 및 통계 초기화
+            isUserRegistered = true;
+            statistics = initStatistics();
+            statistics.meta.userName = userName;
+            statistics.meta.userPhone = userPhone;
+            statistics.meta.registeredAt = new Date().toISOString();
+            statistics.meta.dataStartDate = new Date().toISOString().split('T')[0];
+            
+            // 통계 저장
+            saveStatistics();
+            
+            // UI 업데이트
+            updateUserDisplay();
+            updateAllDisplays();
+            
+            closeUserSettings();
+        }
+
+        function updateUserDisplay() {
+            const userName = localStorage.getItem('aicu_user_name') || '조대표님';
+            const examDate = localStorage.getItem('aicu_exam_date') || '2025년 12월 15일';
+            
+            document.getElementById('user-name-display').textContent = `사용자: ${userName}`;
+            document.getElementById('exam-date-display').textContent = examDate;
+            
+            // D-day 계산
+            if (examDate) {
+                const exam = new Date(examDate);
+                const today = new Date();
+                const diffTime = exam - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('d-day-display').textContent = `D-${diffDays}일`;
+            }
+        }
+
+        function loadStatisticsData() {
+            if (isUserRegistered && statistics) {
+                updateAllDisplays();
+                alert('통계 데이터를 불러왔습니다.');
+            } else {
+                alert('먼저 사용자 설정에서 등록해주세요.');
+            }
+        }
+
+        // ===== 앱 초기화 =====
+        
+        function initializeApp() {
+            // 사용자 설정 로드
+            const userName = localStorage.getItem('aicu_user_name');
+            const userPhone = localStorage.getItem('aicu_user_phone');
+            
+            if (userName && userPhone) {
+                isUserRegistered = true;
+                statistics = initStatistics();
+                statistics.meta.userName = userName;
+                statistics.meta.userPhone = userPhone;
+                loadStatistics();
+            }
+            
+            // UI 업데이트
+            updateUserDisplay();
+            updateAllDisplays();
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+    </script>
+</body>
+</html>

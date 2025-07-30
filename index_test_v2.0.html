@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACIU QUIZ - 통계 기능 V2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        .stat-box { @apply bg-white p-4 rounded-lg shadow-md border border-gray-200; }
+        .stat-value { @apply text-2xl font-bold text-blue-600; }
+        .stat-label { @apply text-sm text-gray-600 mt-1; }
+        .mode-btn { @apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors; }
+        .mode-btn.active { @apply bg-green-500; }
+        .answer-btn { @apply px-6 py-3 m-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition-colors; }
+        .answer-btn.selected { @apply border-blue-500 bg-blue-50; }
+        .answer-btn.correct { @apply border-green-500 bg-green-50; }
+        .answer-btn.incorrect { @apply border-red-500 bg-red-50; }
+        .loading { @apply opacity-50 pointer-events-none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 헤더 -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">ACIU QUIZ</h1>
+            <p class="text-gray-600">보험중개사 시험 준비를 위한 통합 학습 시스템</p>
+        </div>
+
+        <!-- 사용자 설정 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">👤 사용자 설정</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                    <input type="text" id="userName" value="조대표" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">연락처</label>
+                    <input type="text" id="userPhone" value="010-1234-5678" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="registerUser()" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        사용자 등록
+                    </button>
+                </div>
+            </div>
+            <div id="userStatus" class="mt-3 text-sm text-gray-600">미등록 상태</div>
+        </div>
+
+        <!-- 대문 통계 (조대표님 요구사항) -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📊 대문 통계</h2>
+            
+            <!-- 1. 보유문제수 현황 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">1. 보유문제수 현황</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="insQuestions">0</div>
+                        <div class="stat-label">인스교재</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="examQuestions">0</div>
+                        <div class="stat-label">보험중개사시험</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="totalQuestions">0</div>
+                        <div class="stat-label">전체 문제수</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 학습진도 현황 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">2. 학습진도 현황</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="completedQuestions">0</div>
+                        <div class="stat-label">완료한 문제</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="overallProgress">0%</div>
+                        <div class="stat-label">전체 진도율</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="overallAccuracy">0%</div>
+                        <div class="stat-label">정답률</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 금일 학습현황 -->
+            <div>
+                <h3 class="text-lg font-medium mb-3">3. 금일 학습현황</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="todayTotal">0</div>
+                        <div class="stat-label">오늘 총 문제수</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="todayCorrect">0</div>
+                        <div class="stat-label">오늘 정답수</div>
+                    </div>
+                    <div class="stat-box text-center">
+                        <div class="stat-value" id="todayAccuracy">0%</div>
+                        <div class="stat-label">오늘 정답률</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학습 모드 선택 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📚 학습 모드</h2>
+            <div class="flex flex-wrap gap-2">
+                <button class="mode-btn active" onclick="setMode('basic')">기본학습</button>
+                <button class="mode-btn" onclick="setMode('재산보험')">재산보험</button>
+                <button class="mode-btn" onclick="setMode('특종보험')">특종보험</button>
+                <button class="mode-btn" onclick="setMode('배상책임보험')">배상책임보험</button>
+                <button class="mode-btn" onclick="setMode('해상보험')">해상보험</button>
+            </div>
+            <div class="mt-3 text-sm text-gray-600">현재 모드: <span id="currentMode">기본학습</span></div>
+        </div>
+
+        <!-- 모드별 통계 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📈 모드별 통계</h2>
+            
+            <!-- 기본학습 통계 -->
+            <div id="basicStats">
+                <h3 class="text-lg font-medium mb-3">기본학습 통계</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium mb-2">누적현황</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicCumulativeTotal">0</div>
+                                <div class="stat-label">총 문제수</div>
+                            </div>
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicCumulativeCorrect">0</div>
+                                <div class="stat-label">정답수</div>
+                            </div>
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicCumulativeAccuracy">0%</div>
+                                <div class="stat-label">정답률</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-2">금일현황</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicDailyTotal">0</div>
+                                <div class="stat-label">금일 문제수</div>
+                            </div>
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicDailyCorrect">0</div>
+                                <div class="stat-label">금일 정답수</div>
+                            </div>
+                            <div class="stat-box text-center">
+                                <div class="stat-value" id="basicDailyAccuracy">0%</div>
+                                <div class="stat-label">금일 정답률</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 대분류학습 통계 -->
+            <div id="categoryStats" style="display: none;">
+                <h3 class="text-lg font-medium mb-3">대분류학습 통계</h3>
+                
+                <!-- 전체 누적 통계 -->
+                <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                    <h4 class="font-medium mb-2">대분류학습 전체 누적 통계</h4>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="stat-box text-center">
+                            <div class="stat-value" id="largeCategoryTotalAttempted">0</div>
+                            <div class="stat-label">총 푼 문제수</div>
+                        </div>
+                        <div class="stat-box text-center">
+                            <div class="stat-value" id="largeCategoryTotalCorrect">0</div>
+                            <div class="stat-label">총 맞은 문제수</div>
+                        </div>
+                        <div class="stat-box text-center">
+                            <div class="stat-value" id="largeCategoryTotalAccuracy">0%</div>
+                            <div class="stat-label">전체 정답률</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 특정 카테고리 통계 -->
+                <div>
+                    <h4 id="categoryTitle" class="font-medium mb-2">재산보험 통계</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h5 class="font-medium mb-2">누적현황</h5>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryCumulativeTotal">0</div>
+                                    <div class="stat-label">총 문제수</div>
+                                </div>
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryCumulativeCorrect">0</div>
+                                    <div class="stat-label">정답수</div>
+                                </div>
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryCumulativeAccuracy">0%</div>
+                                    <div class="stat-label">정답률</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-medium mb-2">금일현황</h5>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryDailyTotal">0</div>
+                                    <div class="stat-label">금일 문제수</div>
+                                </div>
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryDailyCorrect">0</div>
+                                    <div class="stat-label">금일 정답수</div>
+                                </div>
+                                <div class="stat-box text-center">
+                                    <div class="stat-value" id="categoryDailyAccuracy">0%</div>
+                                    <div class="stat-label">금일 정답률</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 문제 풀이 영역 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">❓ 문제 풀이</h2>
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-sm text-gray-600">
+                        문제 <span id="currentQuestionNumber">1</span> / <span id="totalQuestionCount">0</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        문제코드: <span id="questionCode">-</span>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-600 mb-2">
+                        분류: <span id="questionCategory">-</span> | 유형: <span id="questionType">-</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200">
+                        <p id="questionText" class="text-lg leading-relaxed">문제를 선택해주세요.</p>
+                    </div>
+                </div>
+
+                <div id="answerButtons" class="mb-4">
+                    <!-- 답안 버튼들이 여기에 동적으로 생성됩니다 -->
+                </div>
+
+                <div id="answerResult" class="mb-4"></div>
+
+                <div class="flex justify-between">
+                    <button onclick="prevQuestion()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        ◀ 이전 문제
+                    </button>
+                    <button id="checkAnswerBtn" onclick="checkAnswer()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                        정답 확인
+                    </button>
+                    <button onclick="nextQuestion()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        다음 문제 ▶
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 데이터 관리 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">💾 데이터 관리</h2>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="exportData()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    데이터 내보내기
+                </button>
+                <button onclick="importData()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    데이터 가져오기
+                </button>
+                <button onclick="clearAllData()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    전체 초기화
+                </button>
+                <button onclick="loadStatisticsData()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    통계 데이터 불러오기
+                </button>
+            </div>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleImport(event)">
+        </div>
+    </div>
+
+    <script>
+        // ===== 핵심 데이터 구조 (노팀장 방식 채용) =====
+        
+        // 간소화된 통계 스키마
+        const initStatistics = () => ({
+            meta: {
+                version: "2.0",
+                userName: null,
+                registeredAt: null,
+                dataStartDate: null,
+                lastUpdated: new Date().toISOString()
+            },
+            questionCounts: {
+                "인스교재": 700,
+                "보험중개사시험": 679,
+                "total": 1379
+            },
+            global: {
+                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                daily: { attempted: 0, correct: 0, accuracy: 0 }
+            },
+            modes: {
+                basic: {
+                    cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                    daily: { attempted: 0, correct: 0, accuracy: 0 }
+                },
+                categories: {
+                    "재산보험": {
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 }
+                    },
+                    "특종보험": {
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 }
+                    },
+                    "배상책임보험": {
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 }
+                    },
+                    "해상보험": {
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 }
+                    }
+                },
+                largeCategoryTotal: {
+                    cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                    daily: { attempted: 0, correct: 0, accuracy: 0 }
+                }
+            }
+        });
+
+        // 전역 변수들
+        let statistics = initStatistics();
+        let currentMode = 'basic';
+        let isUserRegistered = false;
+        let userKey = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let selectedAnswer = null;
+        let isAnswerChecked = false;
+
+        // ===== 재활용 가능한 핵심 함수들 =====
+
+        // 정답률 계산 (재활용)
+        function calculateAccuracy(correct, total) {
+            return total === 0 ? 0 : Math.round((correct / total) * 100);
+        }
+
+        // 진도율 계산 (재활용)
+        function calculateProgress(completed, total) {
+            return total === 0 ? 0 : Math.round((completed / total) * 100);
+        }
+
+        // 사용자 키 생성 (재활용)
+        function generateUserKey(userName, userPhone) {
+            return `${userName}_${userPhone}`.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+
+        // 데이터 저장 (재활용)
+        function saveStatistics() {
+            if (!userKey) return;
+            
+            statistics.meta.lastUpdated = new Date().toISOString();
+            localStorage.setItem(`aciu_statistics_${userKey}`, JSON.stringify(statistics));
+            console.log('데이터 저장 완료:', userKey);
+        }
+
+        // 데이터 로드 (재활용)
+        function loadStatistics() {
+            if (!userKey) return;
+            
+            const saved = localStorage.getItem(`aciu_statistics_${userKey}`);
+            if (saved) {
+                try {
+                    const savedStats = JSON.parse(saved);
+                    statistics = { ...initStatistics(), ...savedStats };
+                    console.log('데이터 로드 완료');
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    statistics = initStatistics();
+                }
+            }
+        }
+
+        // 통계 업데이트 (재활용)
+        function updateStatistics(isCorrect, mode, category = null) {
+            // 글로벌 통계 업데이트
+            statistics.global.cumulative.attempted++;
+            if (isCorrect) statistics.global.cumulative.correct++;
+            statistics.global.cumulative.accuracy = calculateAccuracy(
+                statistics.global.cumulative.correct,
+                statistics.global.cumulative.attempted
+            );
+
+            statistics.global.daily.attempted++;
+            if (isCorrect) statistics.global.daily.correct++;
+            statistics.global.daily.accuracy = calculateAccuracy(
+                statistics.global.daily.correct,
+                statistics.global.daily.attempted
+            );
+
+            // 모드별 통계 업데이트
+            if (mode === 'basic') {
+                updateModeStatistics(statistics.modes.basic, isCorrect);
+            } else if (category) {
+                updateModeStatistics(statistics.modes.categories[category], isCorrect);
+                updateModeStatistics(statistics.modes.largeCategoryTotal, isCorrect);
+            }
+
+            // 데이터 저장
+            saveStatistics();
+        }
+
+        // 모드별 통계 업데이트 (재활용)
+        function updateModeStatistics(modeStats, isCorrect) {
+            modeStats.cumulative.attempted++;
+            if (isCorrect) modeStats.cumulative.correct++;
+            modeStats.cumulative.accuracy = calculateAccuracy(
+                modeStats.cumulative.correct,
+                modeStats.cumulative.attempted
+            );
+
+            modeStats.daily.attempted++;
+            if (isCorrect) modeStats.daily.correct++;
+            modeStats.daily.accuracy = calculateAccuracy(
+                modeStats.daily.correct,
+                modeStats.daily.attempted
+            );
+        }
+
+        // 화면 업데이트 (재활용)
+        function updateAllDisplays() {
+            updateHomeStatistics();
+            updateModeStatisticsDisplay();
+        }
+
+        // 대문 통계 업데이트 (재활용)
+        function updateHomeStatistics() {
+            // 보유문제수 현황
+            document.getElementById('insQuestions').textContent = statistics.questionCounts["인스교재"];
+            document.getElementById('examQuestions').textContent = statistics.questionCounts["보험중개사시험"];
+            document.getElementById('totalQuestions').textContent = statistics.questionCounts.total;
+
+            // 학습진도 현황
+            const global = statistics.global.cumulative;
+            document.getElementById('completedQuestions').textContent = global.attempted;
+            document.getElementById('overallProgress').textContent = 
+                calculateProgress(global.attempted, statistics.questionCounts.total) + '%';
+            document.getElementById('overallAccuracy').textContent = global.accuracy + '%';
+
+            // 금일 학습현황
+            const daily = statistics.global.daily;
+            document.getElementById('todayTotal').textContent = daily.attempted;
+            document.getElementById('todayCorrect').textContent = daily.correct;
+            document.getElementById('todayAccuracy').textContent = daily.accuracy + '%';
+        }
+
+        // 모드별 통계 화면 업데이트 (재활용)
+        function updateModeStatisticsDisplay() {
+            if (currentMode === 'basic') {
+                document.getElementById('basicStats').style.display = 'block';
+                document.getElementById('categoryStats').style.display = 'none';
+                
+                const basic = statistics.modes.basic;
+                document.getElementById('basicCumulativeTotal').textContent = basic.cumulative.attempted;
+                document.getElementById('basicCumulativeCorrect').textContent = basic.cumulative.correct;
+                document.getElementById('basicCumulativeAccuracy').textContent = basic.cumulative.accuracy + '%';
+                
+                document.getElementById('basicDailyTotal').textContent = basic.daily.attempted;
+                document.getElementById('basicDailyCorrect').textContent = basic.daily.correct;
+                document.getElementById('basicDailyAccuracy').textContent = basic.daily.accuracy + '%';
+                
+            } else {
+                document.getElementById('basicStats').style.display = 'none';
+                document.getElementById('categoryStats').style.display = 'block';
+                
+                const largeCategoryTotal = statistics.modes.largeCategoryTotal.cumulative;
+                document.getElementById('largeCategoryTotalAttempted').textContent = largeCategoryTotal.attempted;
+                document.getElementById('largeCategoryTotalCorrect').textContent = largeCategoryTotal.correct;
+                document.getElementById('largeCategoryTotalAccuracy').textContent = largeCategoryTotal.accuracy + '%';
+                
+                document.getElementById('categoryTitle').textContent = currentMode + ' 통계';
+                const category = statistics.modes.categories[currentMode];
+                if (category) {
+                    document.getElementById('categoryCumulativeTotal').textContent = category.cumulative.attempted;
+                    document.getElementById('categoryCumulativeCorrect').textContent = category.cumulative.correct;
+                    document.getElementById('categoryCumulativeAccuracy').textContent = category.cumulative.accuracy + '%';
+                    
+                    document.getElementById('categoryDailyTotal').textContent = category.daily.attempted;
+                    document.getElementById('categoryDailyCorrect').textContent = category.daily.correct;
+                    document.getElementById('categoryDailyAccuracy').textContent = category.daily.accuracy + '%';
+                }
+            }
+        }
+
+        // ===== 사용자 관리 =====
+
+        // 사용자 등록
+        function registerUser() {
+            const userName = document.getElementById('userName').value;
+            const userPhone = document.getElementById('userPhone').value;
+            
+            if (!userName || !userPhone) {
+                alert('사용자명과 휴대폰을 입력해주세요');
+                return;
+            }
+
+            userKey = generateUserKey(userName, userPhone);
+            isUserRegistered = true;
+            
+            statistics.meta.userName = userName;
+            statistics.meta.registeredAt = new Date().toISOString();
+            statistics.meta.dataStartDate = new Date().toISOString().split('T')[0];
+            
+            localStorage.setItem('aciu_current_user', userKey);
+            saveStatistics();
+            
+            document.getElementById('userStatus').innerHTML = 
+                `✅ ${userName}님 등록완료 (${statistics.meta.dataStartDate} 부터 데이터 기록)`;
+            
+            updateAllDisplays();
+        }
+
+        // ===== 모드 관리 =====
+
+        // 모드 설정
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('currentMode').textContent = mode;
+            
+            // 모드 버튼 활성화 상태 업데이트
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 문제 로드 (실제 구현에서는 CSV 파일에서 로드)
+            loadQuestionsForMode(mode);
+            
+            updateModeStatisticsDisplay();
+        }
+
+        // 모드별 문제 로드 (재활용)
+        function loadQuestionsForMode(mode) {
+            // 실제 구현에서는 CSV 파일을 파싱하여 로드
+            // 여기서는 샘플 데이터 사용
+            questions = generateSampleQuestions(mode);
+            currentQuestionIndex = 0;
+            displayCurrentQuestion();
+        }
+
+        // 샘플 문제 생성 (재활용)
+        function generateSampleQuestions(mode) {
+            const sampleQuestions = [
+                {
+                    code: "Q001",
+                    question: "보험의 기본 원리는 위험의 분산이다.",
+                    type: "진위형",
+                    category: "재산보험",
+                    answer: "O",
+                    options: null
+                },
+                {
+                    code: "Q002",
+                    question: "재산보험에서 보험가액은 보험사고 발생 시점의 피보험이익의 가액을 말한다.",
+                    type: "진위형",
+                    category: "재산보험",
+                    answer: "O",
+                    options: null
+                },
+                {
+                    code: "Q003",
+                    question: "자동차보험에서 대인배상보험의 가입은 다음 중 어느 것인가?",
+                    type: "선택형",
+                    category: "특종보험",
+                    answer: "1",
+                    options: ["의무가입", "임의가입", "선택가입", "조건부가입"]
+                }
+            ];
+
+            if (mode === 'basic') {
+                return sampleQuestions;
+            } else {
+                return sampleQuestions.filter(q => q.category === mode);
+            }
+        }
+
+        // ===== 문제 풀이 =====
+
+        // 현재 문제 표시 (재활용)
+        function displayCurrentQuestion() {
+            if (questions.length === 0) {
+                document.getElementById('questionText').textContent = '해당 모드의 문제가 없습니다.';
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            
+            document.getElementById('currentQuestionNumber').textContent = currentQuestionIndex + 1;
+            document.getElementById('totalQuestionCount').textContent = questions.length;
+            document.getElementById('questionCode').textContent = question.code;
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('questionType').textContent = question.type;
+            document.getElementById('questionCategory').textContent = question.category;
+            
+            createAnswerButtons(question);
+            
+            selectedAnswer = null;
+            isAnswerChecked = false;
+            document.getElementById('answerResult').innerHTML = '';
+            document.getElementById('checkAnswerBtn').style.display = 'block';
+        }
+
+        // 답안 버튼 생성 (재활용)
+        function createAnswerButtons(question) {
+            const container = document.getElementById('answerButtons');
+            container.innerHTML = '';
+            
+            if (question.type === '진위형') {
+                const oBtn = document.createElement('button');
+                oBtn.className = 'answer-btn';
+                oBtn.textContent = 'O';
+                oBtn.onclick = () => selectAnswer('O');
+                
+                const xBtn = document.createElement('button');
+                xBtn.className = 'answer-btn';
+                xBtn.textContent = 'X';
+                xBtn.onclick = () => selectAnswer('X');
+                
+                container.appendChild(oBtn);
+                container.appendChild(xBtn);
+                
+            } else if (question.type === '선택형') {
+                question.options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'answer-btn';
+                    btn.innerHTML = `${index + 1}. ${option}`;
+                    btn.onclick = () => selectAnswer((index + 1).toString());
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        // 답안 선택 (재활용)
+        function selectAnswer(answer) {
+            if (isAnswerChecked) return;
+            
+            selectedAnswer = answer;
+            
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            event.target.classList.add('selected');
+        }
+
+        // 정답 확인 (재활용)
+        function checkAnswer() {
+            if (!selectedAnswer) {
+                alert('답안을 선택해주세요.');
+                return;
+            }
+            
+            if (isAnswerChecked) {
+                alert('이미 확인한 문제입니다.');
+                return;
+            }
+
+            const currentQuestion = questions[currentQuestionIndex];
+            const isCorrect = selectedAnswer === currentQuestion.answer;
+            
+            isAnswerChecked = true;
+            
+            // 통계 업데이트
+            if (isUserRegistered) {
+                updateStatistics(isCorrect, currentMode, currentQuestion.category);
+                updateAllDisplays();
+            }
+            
+            // 답안 버튼 색상 업데이트
+            updateAnswerButtonColors(currentQuestion.answer, selectedAnswer, isCorrect);
+            
+            // 결과 메시지 표시
+            showAnswerResult(isCorrect, currentQuestion.answer);
+            
+            document.getElementById('checkAnswerBtn').style.display = 'none';
+        }
+
+        // 답안 버튼 색상 업데이트 (재활용)
+        function updateAnswerButtonColors(correctAnswer, selectedAnswer, isCorrect) {
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                const btnAnswer = btn.textContent.charAt(0);
+                
+                if (btnAnswer === correctAnswer) {
+                    btn.classList.add('correct');
+                } else if (btnAnswer === selectedAnswer && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+                
+                btn.classList.add('disabled');
+            });
+        }
+
+        // 결과 메시지 표시 (재활용)
+        function showAnswerResult(isCorrect, correctAnswer) {
+            const resultDiv = document.getElementById('answerResult');
+            
+            if (isCorrect) {
+                resultDiv.innerHTML = `
+                    <div class="text-green-600 font-bold text-lg">
+                        ✅ 정답입니다!
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="text-red-600 font-bold text-lg">
+                        ❌ 오답입니다. 정답은 "${correctAnswer}" 입니다.
+                    </div>
+                `;
+            }
+        }
+
+        // 다음 문제 (재활용)
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayCurrentQuestion();
+            } else {
+                alert('마지막 문제입니다.');
+            }
+        }
+
+        // 이전 문제 (재활용)
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayCurrentQuestion();
+            } else {
+                alert('첫 번째 문제입니다.');
+            }
+        }
+
+        // ===== 데이터 관리 =====
+
+        // 데이터 내보내기 (재활용)
+        function exportData() {
+            const dataStr = JSON.stringify(statistics, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `aciu_statistics_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // 데이터 가져오기 (재활용)
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        // 파일 가져오기 처리 (재활용)
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    statistics = { ...initStatistics(), ...importedData };
+                    isUserRegistered = !!statistics.meta.userName;
+                    
+                    if (isUserRegistered) {
+                        userKey = generateUserKey(statistics.meta.userName, '010-1234-5678');
+                        document.getElementById('userName').value = statistics.meta.userName;
+                        document.getElementById('userStatus').innerHTML = 
+                            `✅ ${statistics.meta.userName}님 데이터 가져오기 완료`;
+                    }
+                    
+                    updateAllDisplays();
+                    alert('데이터를 성공적으로 가져왔습니다!');
+                } catch (error) {
+                    console.error('데이터 가져오기 실패:', error);
+                    alert('잘못된 데이터 파일입니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 전체 초기화 (재활용)
+        function clearAllData() {
+            if (confirm('정말로 모든 데이터를 초기화하시겠습니까?')) {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('aciu_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                statistics = initStatistics();
+                isUserRegistered = false;
+                userKey = null;
+                
+                document.getElementById('userName').value = '';
+                document.getElementById('userPhone').value = '';
+                document.getElementById('userStatus').innerHTML = '미등록 상태';
+                
+                updateAllDisplays();
+                alert('모든 데이터가 초기화되었습니다.');
+            }
+        }
+
+        // 통계 데이터 불러오기 (재활용)
+        function loadStatisticsData() {
+            if (userKey) {
+                loadStatistics();
+                updateAllDisplays();
+                alert('통계 데이터를 불러왔습니다!');
+            } else {
+                alert('먼저 사용자를 등록해주세요.');
+            }
+        }
+
+        // ===== 앱 초기화 =====
+
+        // 앱 초기화
+        function initApp() {
+            console.log('=== ACIU QUIZ V2.0 초기화 ===');
+            
+            // 저장된 사용자 정보 확인
+            const savedUserKey = localStorage.getItem('aciu_current_user');
+            if (savedUserKey) {
+                userKey = savedUserKey;
+                isUserRegistered = true;
+                loadStatistics();
+                
+                const userName = statistics.meta.userName || '조대표';
+                document.getElementById('userName').value = userName;
+                document.getElementById('userStatus').innerHTML = 
+                    `✅ ${userName}님 등록완료 (${statistics.meta.dataStartDate || '2025-07-29'} 부터 데이터 기록)`;
+            }
+            
+            updateAllDisplays();
+            setMode('basic');
+            
+            console.log('앱 초기화 완료');
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', initApp);
+
+        // 자동 저장 (30초마다)
+        setInterval(() => {
+            if (isUserRegistered) {
+                saveStatistics();
+            }
+        }, 30000);
+
+        // 페이지 언로드 시 저장
+        window.addEventListener('beforeunload', () => {
+            if (isUserRegistered) {
+                saveStatistics();
+            }
+        });
+    </script>
+</body>
+</html>
