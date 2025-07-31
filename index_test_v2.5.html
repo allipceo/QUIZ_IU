@@ -108,27 +108,8 @@
                         <div class="text-sm text-gray-600">전체 진도율</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="accuracy-rate">0%</div>
-                        <div class="text-sm text-gray-600">정답률</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 금일의 학습현황 -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6" id="daily-learning-stats">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">금일의 학습현황</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600" id="today-total-questions">0</div>
-                        <div class="text-sm text-gray-600">오늘 문제</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-green-600" id="today-correct-answers">0</div>
-                        <div class="text-sm text-gray-600">오늘 정답</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="today-accuracy-rate">0%</div>
-                        <div class="text-sm text-gray-600">오늘 정답률</div>
+                        <div class="text-2xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                        <div class="text-sm text-gray-600">오늘 진도율</div>
                     </div>
                 </div>
             </div>
@@ -1455,7 +1436,7 @@
             document.getElementById('status').className = 'text-center text-blue-600 mb-4 font-semibold';
         }
 
-        // 홈 화면으로 돌아가기 함수 (Phase 4-2)
+        // 홈 화면으로 돌아가기 함수
         function goHome() {
             console.log('홈 화면으로 돌아가기');
             
@@ -1474,13 +1455,6 @@
             // 상태 초기화
             document.getElementById('status').textContent = '홈 화면';
             document.getElementById('status').className = 'text-center text-gray-600 mb-4';
-            
-            // 대문 통계 새로고침 (Phase 4-2)
-            const stats = statisticsCache.get();
-            if (stats) {
-                updateHomeStatistics(stats);
-                console.log('대문 통계 새로고침 완료');
-            }
         }
 
         // 모듈 4.1: 진도 관리 함수
@@ -3601,9 +3575,6 @@
                 // 7. UI 업데이트 (지연 처리)
                 scheduleUIUpdate(stats);
                 
-                // 8. 대문 통계 실시간 업데이트 (Phase 4-1)
-                updateHomeStatistics(stats);
-                
                 performance.log();
                 console.log('=== 통합 통계 업데이트 완료 ===');
                 
@@ -3793,20 +3764,16 @@
             }
         }
         
-        // 대문 통계 업데이트 (Phase 3-3)
+        // 대문 통계 업데이트
         function updateHomeStatistics(stats) {
-            console.log('=== 대문 통계 업데이트 시작 ===');
-            
             // 보유 문제수 현황 업데이트
             updateQuestionCounts(stats);
             
             // 학습 진도 현황 업데이트
             updateProgressData(stats);
             
-            // 금일 학습현황 업데이트 (Phase 3-2)
-            updateTodayLearningStatus(stats);
-            
-            console.log('=== 대문 통계 업데이트 완료 ===');
+            // 금일 학습현황 업데이트
+            updateDailyStatisticsDisplay(stats);
         }
         
         // 보유 문제수 현황 업데이트
@@ -3851,43 +3818,76 @@
                 progressElement.textContent = progressRate + '%';
             }
             
-            // 정답률 (기존 daily-progress-rate를 accuracy-rate로 변경)
-            const accuracyElement = document.getElementById('accuracy-rate');
+            // 정답률 (오늘의 진도율을 정답률로 변경)
+            const accuracyElement = document.getElementById('daily-progress-rate');
             if (accuracyElement) {
                 animateNumber(accuracyElement, parseInt(accuracyElement.textContent) || 0, global.accuracy, 1000);
                 accuracyElement.textContent = global.accuracy + '%';
             }
         }
         
-        // 금일 학습현황 업데이트 함수 (Phase 3-2)
-        function updateTodayLearningStatus(stats) {
-            const todayKey = getTodayKey();
-            const globalDaily = stats.stats.global.daily[todayKey] || { attempted: 0, correct: 0, accuracy: 0 };
+        // 금일 학습현황 업데이트
+        function updateDailyStatisticsDisplay(stats) {
+            const daily = stats.stats.global.daily;
             
-            console.log('=== 금일 학습현황 업데이트 시작 ===');
-            console.log('금일 데이터:', globalDaily);
+            // 금일 학습현황 박스가 없으면 생성
+            let dailyStatsBox = document.getElementById('daily-learning-stats');
+            if (!dailyStatsBox) {
+                createDailyStatsBox();
+                dailyStatsBox = document.getElementById('daily-learning-stats');
+            }
             
-            // 오늘 푼 총 문제수
+            // 오늘 풀이한 총 문제수
             const todayTotalElement = document.getElementById('today-total-questions');
             if (todayTotalElement) {
-                todayTotalElement.textContent = globalDaily.attempted || 0;
+                animateNumber(todayTotalElement, parseInt(todayTotalElement.textContent) || 0, daily.attempted, 1000);
             }
             
             // 오늘 정답수
             const todayCorrectElement = document.getElementById('today-correct-answers');
             if (todayCorrectElement) {
-                todayCorrectElement.textContent = globalDaily.correct || 0;
+                animateNumber(todayCorrectElement, parseInt(todayCorrectElement.textContent) || 0, daily.correct, 1000);
             }
             
             // 오늘 정답률
             const todayAccuracyElement = document.getElementById('today-accuracy-rate');
             if (todayAccuracyElement) {
-                todayAccuracyElement.textContent = (globalDaily.accuracy || 0) + '%';
+                animateNumber(todayAccuracyElement, parseInt(todayAccuracyElement.textContent) || 0, daily.accuracy, 1000);
+                todayAccuracyElement.textContent = daily.accuracy + '%';
             }
-            
-            console.log(`금일 학습현황: ${globalDaily.attempted}문제, ${globalDaily.correct}정답, ${globalDaily.accuracy}%`);
         }
-
+        
+        // 금일 학습현황 박스 생성
+        function createDailyStatsBox() {
+            const homeScreen = document.getElementById('home-screen');
+            const progressSection = document.querySelector('.bg-white.rounded-lg.shadow-lg.p-6.mb-6:nth-child(4)');
+            
+            if (homeScreen && progressSection) {
+                const dailyStatsBox = document.createElement('div');
+                dailyStatsBox.id = 'daily-learning-stats';
+                dailyStatsBox.className = 'bg-white rounded-lg shadow-lg p-6 mb-6';
+                dailyStatsBox.innerHTML = `
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">금일의 학습 현황</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="today-total-questions">0</div>
+                            <div class="text-sm text-gray-600">오늘 푼 문제수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" id="today-correct-answers">0</div>
+                            <div class="text-sm text-gray-600">오늘 정답수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600" id="today-accuracy-rate">0%</div>
+                            <div class="text-sm text-gray-600">오늘 정답률</div>
+                        </div>
+                    </div>
+                `;
+                
+                // 학습 진도 현황 다음에 삽입
+                progressSection.parentNode.insertBefore(dailyStatsBox, progressSection.nextSibling);
+            }
+        }
         
         // 숫자 애니메이션 함수
         function animateNumber(element, from, to, duration) {

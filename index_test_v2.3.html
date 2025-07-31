@@ -108,27 +108,8 @@
                         <div class="text-sm text-gray-600">전체 진도율</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="accuracy-rate">0%</div>
-                        <div class="text-sm text-gray-600">정답률</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 금일의 학습현황 -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6" id="daily-learning-stats">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">금일의 학습현황</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600" id="today-total-questions">0</div>
-                        <div class="text-sm text-gray-600">오늘 문제</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-green-600" id="today-correct-answers">0</div>
-                        <div class="text-sm text-gray-600">오늘 정답</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="today-accuracy-rate">0%</div>
-                        <div class="text-sm text-gray-600">오늘 정답률</div>
+                        <div class="text-2xl font-bold text-orange-600" id="daily-progress-rate">0%</div>
+                        <div class="text-sm text-gray-600">오늘 진도율</div>
                     </div>
                 </div>
             </div>
@@ -216,11 +197,6 @@
         <div id="basic-learning-screen" class="bg-white rounded-lg shadow-md p-8 hidden">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-semibold">기본학습</h2>
-                <div id="basic-learning-total-summary" style="background: #f0f8ff; padding: 10px; border-radius: 5px; font-size: 14px;">
-                    전체: <span id="basic-total-attempted">0</span>문제 | 
-                    정답: <span id="basic-total-correct">0</span>개 | 
-                    정답률: <span id="basic-total-accuracy">0</span>%
-                </div>
                 <button onclick="goHome()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                     홈으로
                 </button>
@@ -285,52 +261,21 @@
                     </button>
                 </div>
                 
-                <!-- 기본학습 통계 정보 (Phase 2와 동일한 2단 구조) -->
-                <div class="mt-6">
-                    <!-- 기본학습 통계 -->
-                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4" id="basic-stats-container">
-                        <h3 class="text-lg font-semibold mb-4">기본학습 통계</h3>
-                        
-                        <!-- 누적 현황 -->
-                        <div class="mb-6">
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📊 누적현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="basic-cumulative-total">0</div>
-                                    <div class="text-sm text-gray-600">총 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="basic-cumulative-correct">0</div>
-                                    <div class="text-sm text-gray-600">정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-purple-600" id="basic-cumulative-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 금일 현황 -->
+                <!-- 통계 정보 -->
+                <div class="mt-6 p-4 bg-blue-50 rounded">
+                    <h4 class="font-semibold mb-2">학습 통계</h4>
+                    <div class="grid grid-cols-3 gap-4 text-center">
                         <div>
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📅 금일현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-green-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="basic-daily-total">0</div>
-                                    <div class="text-sm text-gray-600">금일 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="basic-daily-correct">0</div>
-                                    <div class="text-sm text-gray-600">금일 정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-purple-600" id="basic-daily-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">금일 정답률</div>
-                                </div>
-                            </div>
+                            <div class="text-2xl font-bold text-blue-600" id="total-questions">0</div>
+                            <div class="text-sm text-gray-600">총 문제</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-green-600" id="correct-answers">0</div>
+                            <div class="text-sm text-gray-600">정답</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-red-600" id="incorrect-answers">0</div>
+                            <div class="text-sm text-gray-600">오답</div>
                         </div>
                     </div>
                 </div>
@@ -360,8 +305,8 @@
                         <div class="font-semibold">재산보험</div>
                         <div class="text-sm opacity-90">일반재산보험</div>
                         <div class="mt-2 text-xs opacity-75">
-                            <div>누적: <span id="재산보험-button-cumulative-total">0</span>문제 | 정답: <span id="재산보험-button-cumulative-correct">0</span>개</div>
-                            <div>금일: <span id="재산보험-button-daily-total">0</span>문제 | 정답: <span id="재산보험-button-daily-correct">0</span>개</div>
+                            <div>누적: <span id="재산보험-cumulative-total">0</span>문제 | 정답: <span id="재산보험-cumulative-correct">0</span>개</div>
+                            <div>금일: <span id="재산보험-daily-total">0</span>문제 | 정답: <span id="재산보험-daily-correct">0</span>개</div>
                         </div>
                     </button>
                     <button onclick="selectLargeCategory('특종보험')" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center">
@@ -369,8 +314,8 @@
                         <div class="font-semibold">특종보험</div>
                         <div class="text-sm opacity-90">자동차보험</div>
                         <div class="mt-2 text-xs opacity-75">
-                            <div>누적: <span id="특종보험-button-cumulative-total">0</span>문제 | 정답: <span id="특종보험-button-cumulative-correct">0</span>개</div>
-                            <div>금일: <span id="특종보험-button-daily-total">0</span>문제 | 정답: <span id="특종보험-button-daily-correct">0</span>개</div>
+                            <div>누적: <span id="특종보험-cumulative-total">0</span>문제 | 정답: <span id="특종보험-cumulative-correct">0</span>개</div>
+                            <div>금일: <span id="특종보험-daily-total">0</span>문제 | 정답: <span id="특종보험-daily-correct">0</span>개</div>
                         </div>
                     </button>
                     <button onclick="selectLargeCategory('배상책임보험')" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg text-center">
@@ -378,8 +323,8 @@
                         <div class="font-semibold">배상책임보험</div>
                         <div class="text-sm opacity-90">책임보험</div>
                         <div class="mt-2 text-xs opacity-75">
-                            <div>누적: <span id="배상책임보험-button-cumulative-total">0</span>문제 | 정답: <span id="배상책임보험-button-cumulative-correct">0</span>개</div>
-                            <div>금일: <span id="배상책임보험-button-daily-total">0</span>문제 | 정답: <span id="배상책임보험-button-daily-correct">0</span>개</div>
+                            <div>누적: <span id="배상책임보험-cumulative-total">0</span>문제 | 정답: <span id="배상책임보험-cumulative-correct">0</span>개</div>
+                            <div>금일: <span id="배상책임보험-daily-total">0</span>문제 | 정답: <span id="배상책임보험-daily-correct">0</span>개</div>
                         </div>
                     </button>
                     <button onclick="selectLargeCategory('해상보험')" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center">
@@ -387,8 +332,8 @@
                         <div class="font-semibold">해상보험</div>
                         <div class="text-sm opacity-90">해상보험</div>
                         <div class="mt-2 text-xs opacity-75">
-                            <div>누적: <span id="해상보험-button-cumulative-total">0</span>문제 | 정답: <span id="해상보험-button-cumulative-correct">0</span>개</div>
-                            <div>금일: <span id="해상보험-button-daily-total">0</span>문제 | 정답: <span id="해상보험-button-daily-correct">0</span>개</div>
+                            <div>누적: <span id="해상보험-cumulative-total">0</span>문제 | 정답: <span id="해상보험-cumulative-correct">0</span>개</div>
+                            <div>금일: <span id="해상보험-daily-total">0</span>문제 | 정답: <span id="해상보험-daily-correct">0</span>개</div>
                         </div>
                     </button>
                 </div>
@@ -432,192 +377,20 @@
                 </div>
                 
                 <!-- 통계 정보 -->
-                <div class="mt-6">
-                    <!-- 재산보험 통계 -->
-                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4" id="재산보험-stats-container" style="display: none;">
-                        <h3 class="text-lg font-semibold mb-4">재산보험 통계</h3>
-                        
-                        <!-- 누적 현황 -->
-                        <div class="mb-6">
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📊 누적현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="재산보험-cumulative-total">0</div>
-                                    <div class="text-sm text-gray-600">총 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="재산보험-cumulative-correct">0</div>
-                                    <div class="text-sm text-gray-600">정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="재산보험-cumulative-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 금일 현황 -->
+                <div class="mt-6 p-4 bg-green-50 rounded">
+                    <h4 class="font-semibold mb-2">학습 통계</h4>
+                    <div class="grid grid-cols-3 gap-4 text-center">
                         <div>
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📅 금일현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-green-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="재산보험-daily-total">0</div>
-                                    <div class="text-sm text-gray-600">금일 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="재산보험-daily-correct">0</div>
-                                    <div class="text-sm text-gray-600">금일 정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="재산보험-daily-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">금일 정답률</div>
-                                </div>
-                            </div>
+                            <div class="text-2xl font-bold text-green-600" id="large-total-questions">0</div>
+                            <div class="text-sm text-gray-600">총 문제</div>
                         </div>
-                    </div>
-                    
-                    <!-- 특종보험 통계 -->
-                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4" id="특종보험-stats-container" style="display: none;">
-                        <h3 class="text-lg font-semibold mb-4">특종보험 통계</h3>
-                        
-                        <!-- 누적 현황 -->
-                        <div class="mb-6">
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📊 누적현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="특종보험-cumulative-total">0</div>
-                                    <div class="text-sm text-gray-600">총 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="특종보험-cumulative-correct">0</div>
-                                    <div class="text-sm text-gray-600">정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="특종보험-cumulative-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 금일 현황 -->
                         <div>
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📅 금일현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-green-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="특종보험-daily-total">0</div>
-                                    <div class="text-sm text-gray-600">금일 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="특종보험-daily-correct">0</div>
-                                    <div class="text-sm text-gray-600">금일 정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="특종보험-daily-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">금일 정답률</div>
-                                </div>
-                            </div>
+                            <div class="text-2xl font-bold text-green-600" id="large-correct-answers">0</div>
+                            <div class="text-sm text-gray-600">정답</div>
                         </div>
-                    </div>
-                    
-                    <!-- 배상책임보험 통계 -->
-                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4" id="배상책임보험-stats-container" style="display: none;">
-                        <h3 class="text-lg font-semibold mb-4">배상책임보험 통계</h3>
-                        
-                        <!-- 누적 현황 -->
-                        <div class="mb-6">
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📊 누적현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="배상책임보험-cumulative-total">0</div>
-                                    <div class="text-sm text-gray-600">총 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="배상책임보험-cumulative-correct">0</div>
-                                    <div class="text-sm text-gray-600">정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="배상책임보험-cumulative-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 금일 현황 -->
                         <div>
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📅 금일현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-green-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="배상책임보험-daily-total">0</div>
-                                    <div class="text-sm text-gray-600">금일 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="배상책임보험-daily-correct">0</div>
-                                    <div class="text-sm text-gray-600">금일 정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="배상책임보험-daily-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">금일 정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 해상보험 통계 -->
-                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4" id="해상보험-stats-container" style="display: none;">
-                        <h3 class="text-lg font-semibold mb-4">해상보험 통계</h3>
-                        
-                        <!-- 누적 현황 -->
-                        <div class="mb-6">
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📊 누적현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="해상보험-cumulative-total">0</div>
-                                    <div class="text-sm text-gray-600">총 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="해상보험-cumulative-correct">0</div>
-                                    <div class="text-sm text-gray-600">정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="해상보험-cumulative-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">정답률</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 금일 현황 -->
-                        <div>
-                            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                                📅 금일현황
-                            </h4>
-                            <div class="grid grid-cols-3 gap-4 bg-green-50 p-4 rounded">
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-blue-600" id="해상보험-daily-total">0</div>
-                                    <div class="text-sm text-gray-600">금일 문제수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-green-600" id="해상보험-daily-correct">0</div>
-                                    <div class="text-sm text-gray-600">금일 정답수</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-xl font-bold text-orange-600" id="해상보험-daily-accuracy">0%</div>
-                                    <div class="text-sm text-gray-600">금일 정답률</div>
-                                </div>
-                            </div>
+                            <div class="text-2xl font-bold text-red-600" id="large-incorrect-answers">0</div>
+                            <div class="text-sm text-gray-600">오답</div>
                         </div>
                     </div>
                 </div>
@@ -1384,9 +1157,6 @@
             // 문제 표시 영역 표시
             document.getElementById('large-category-question-area').classList.remove('hidden');
             
-            // 카테고리별 통계 컨테이너 표시
-            showCategoryStats(category);
-            
             // 카테고리별 데이터 로드
             loadCategoryData(category);
             
@@ -1396,25 +1166,6 @@
             // 상태 업데이트
             document.getElementById('status').textContent = `대분류학습 - ${category}`;
             document.getElementById('status').className = 'text-center text-green-600 mb-4 font-semibold';
-        }
-        
-        // 카테고리별 통계 컨테이너 표시 함수
-        function showCategoryStats(category) {
-            // 모든 카테고리 통계 컨테이너 숨기기
-            const categories = ['재산보험', '특종보험', '배상책임보험', '해상보험'];
-            categories.forEach(cat => {
-                const container = document.getElementById(`${cat}-stats-container`);
-                if (container) {
-                    container.style.display = 'none';
-                }
-            });
-            
-            // 선택된 카테고리 통계 컨테이너 표시
-            const selectedContainer = document.getElementById(`${category}-stats-container`);
-            if (selectedContainer) {
-                selectedContainer.style.display = 'block';
-                console.log(`${category} 통계 컨테이너 표시`);
-            }
         }
         
         // 대분류학습 통계 업데이트 함수
@@ -1455,7 +1206,7 @@
             document.getElementById('status').className = 'text-center text-blue-600 mb-4 font-semibold';
         }
 
-        // 홈 화면으로 돌아가기 함수 (Phase 4-2)
+        // 홈 화면으로 돌아가기 함수
         function goHome() {
             console.log('홈 화면으로 돌아가기');
             
@@ -1474,13 +1225,6 @@
             // 상태 초기화
             document.getElementById('status').textContent = '홈 화면';
             document.getElementById('status').className = 'text-center text-gray-600 mb-4';
-            
-            // 대문 통계 새로고침 (Phase 4-2)
-            const stats = statisticsCache.get();
-            if (stats) {
-                updateHomeStatistics(stats);
-                console.log('대문 통계 새로고침 완료');
-            }
         }
 
         // 모듈 4.1: 진도 관리 함수
@@ -3601,9 +3345,6 @@
                 // 7. UI 업데이트 (지연 처리)
                 scheduleUIUpdate(stats);
                 
-                // 8. 대문 통계 실시간 업데이트 (Phase 4-1)
-                updateHomeStatistics(stats);
-                
                 performance.log();
                 console.log('=== 통합 통계 업데이트 완료 ===');
                 
@@ -3624,17 +3365,17 @@
                 stats.stats.global.cumulative.attempted
             );
             
-            // 일별 통계 업데이트 (날짜별 구조로 수정)
-            if (!stats.stats.global.daily[todayKey]) {
-                stats.stats.global.daily[todayKey] = { attempted: 0, correct: 0, accuracy: 0 };
+            // 일별 통계 업데이트
+            if (!stats.stats.global.daily) {
+                stats.stats.global.daily = { attempted: 0, correct: 0, accuracy: 0 };
             }
-            stats.stats.global.daily[todayKey].attempted++;
+            stats.stats.global.daily.attempted++;
             if (isCorrect) {
-                stats.stats.global.daily[todayKey].correct++;
+                stats.stats.global.daily.correct++;
             }
-            stats.stats.global.daily[todayKey].accuracy = calculateAccuracy(
-                stats.stats.global.daily[todayKey].correct,
-                stats.stats.global.daily[todayKey].attempted
+            stats.stats.global.daily.accuracy = calculateAccuracy(
+                stats.stats.global.daily.correct,
+                stats.stats.global.daily.attempted
             );
         }
         
@@ -3659,17 +3400,14 @@
                 stats.stats.modes.basic.cumulative.attempted
             );
             
-            // 일별 통계 (날짜별 구조로 수정)
-            if (!stats.stats.modes.basic.daily[todayKey]) {
-                stats.stats.modes.basic.daily[todayKey] = { attempted: 0, correct: 0, accuracy: 0 };
-            }
-            stats.stats.modes.basic.daily[todayKey].attempted++;
+            // 일별 통계
+            stats.stats.modes.basic.daily.attempted++;
             if (isCorrect) {
-                stats.stats.modes.basic.daily[todayKey].correct++;
+                stats.stats.modes.basic.daily.correct++;
             }
-            stats.stats.modes.basic.daily[todayKey].accuracy = calculateAccuracy(
-                stats.stats.modes.basic.daily[todayKey].correct,
-                stats.stats.modes.basic.daily[todayKey].attempted
+            stats.stats.modes.basic.daily.accuracy = calculateAccuracy(
+                stats.stats.modes.basic.daily.correct,
+                stats.stats.modes.basic.daily.attempted
             );
         }
         
@@ -3685,17 +3423,14 @@
                 stats.stats.modes.largeCategory.cumulative.attempted
             );
             
-            // 전체 일별 통계 (날짜별 구조로 수정)
-            if (!stats.stats.modes.largeCategory.daily[todayKey]) {
-                stats.stats.modes.largeCategory.daily[todayKey] = { attempted: 0, correct: 0, accuracy: 0 };
-            }
-            stats.stats.modes.largeCategory.daily[todayKey].attempted++;
+            // 전체 일별 통계
+            stats.stats.modes.largeCategory.daily.attempted++;
             if (isCorrect) {
-                stats.stats.modes.largeCategory.daily[todayKey].correct++;
+                stats.stats.modes.largeCategory.daily.correct++;
             }
-            stats.stats.modes.largeCategory.daily[todayKey].accuracy = calculateAccuracy(
-                stats.stats.modes.largeCategory.daily[todayKey].correct,
-                stats.stats.modes.largeCategory.daily[todayKey].attempted
+            stats.stats.modes.largeCategory.daily.accuracy = calculateAccuracy(
+                stats.stats.modes.largeCategory.daily.correct,
+                stats.stats.modes.largeCategory.daily.attempted
             );
         }
         
@@ -3720,17 +3455,14 @@
                 categoryStats.cumulative.attempted
             );
             
-            // 일별 통계 (날짜별 구조로 수정)
-            if (!categoryStats.daily[todayKey]) {
-                categoryStats.daily[todayKey] = { attempted: 0, correct: 0, accuracy: 0 };
-            }
-            categoryStats.daily[todayKey].attempted++;
+            // 일별 통계
+            categoryStats.daily.attempted++;
             if (isCorrect) {
-                categoryStats.daily[todayKey].correct++;
+                categoryStats.daily.correct++;
             }
-            categoryStats.daily[todayKey].accuracy = calculateAccuracy(
-                categoryStats.daily[todayKey].correct,
-                categoryStats.daily[todayKey].attempted
+            categoryStats.daily.accuracy = calculateAccuracy(
+                categoryStats.daily.correct,
+                categoryStats.daily.attempted
             );
         }
         
@@ -3781,10 +3513,6 @@
                 updateLargeCategoryTotalSummary(stats);
                 updateCategoryButtonStats(stats);
                 
-                // 4. 기본학습 통계 업데이트
-                updateBasicLearningStats(stats);
-                updateBasicLearningTotalSummary(stats);
-                
                 performance.log();
                 console.log('=== 전체 UI 업데이트 완료 ===');
                 
@@ -3793,20 +3521,16 @@
             }
         }
         
-        // 대문 통계 업데이트 (Phase 3-3)
+        // 대문 통계 업데이트
         function updateHomeStatistics(stats) {
-            console.log('=== 대문 통계 업데이트 시작 ===');
-            
             // 보유 문제수 현황 업데이트
             updateQuestionCounts(stats);
             
             // 학습 진도 현황 업데이트
             updateProgressData(stats);
             
-            // 금일 학습현황 업데이트 (Phase 3-2)
-            updateTodayLearningStatus(stats);
-            
-            console.log('=== 대문 통계 업데이트 완료 ===');
+            // 금일 학습현황 업데이트
+            updateDailyStatisticsDisplay(stats);
         }
         
         // 보유 문제수 현황 업데이트
@@ -3851,43 +3575,76 @@
                 progressElement.textContent = progressRate + '%';
             }
             
-            // 정답률 (기존 daily-progress-rate를 accuracy-rate로 변경)
-            const accuracyElement = document.getElementById('accuracy-rate');
+            // 정답률 (오늘의 진도율을 정답률로 변경)
+            const accuracyElement = document.getElementById('daily-progress-rate');
             if (accuracyElement) {
                 animateNumber(accuracyElement, parseInt(accuracyElement.textContent) || 0, global.accuracy, 1000);
                 accuracyElement.textContent = global.accuracy + '%';
             }
         }
         
-        // 금일 학습현황 업데이트 함수 (Phase 3-2)
-        function updateTodayLearningStatus(stats) {
-            const todayKey = getTodayKey();
-            const globalDaily = stats.stats.global.daily[todayKey] || { attempted: 0, correct: 0, accuracy: 0 };
+        // 금일 학습현황 업데이트
+        function updateDailyStatisticsDisplay(stats) {
+            const daily = stats.stats.global.daily;
             
-            console.log('=== 금일 학습현황 업데이트 시작 ===');
-            console.log('금일 데이터:', globalDaily);
+            // 금일 학습현황 박스가 없으면 생성
+            let dailyStatsBox = document.getElementById('daily-learning-stats');
+            if (!dailyStatsBox) {
+                createDailyStatsBox();
+                dailyStatsBox = document.getElementById('daily-learning-stats');
+            }
             
-            // 오늘 푼 총 문제수
+            // 오늘 풀이한 총 문제수
             const todayTotalElement = document.getElementById('today-total-questions');
             if (todayTotalElement) {
-                todayTotalElement.textContent = globalDaily.attempted || 0;
+                animateNumber(todayTotalElement, parseInt(todayTotalElement.textContent) || 0, daily.attempted, 1000);
             }
             
             // 오늘 정답수
             const todayCorrectElement = document.getElementById('today-correct-answers');
             if (todayCorrectElement) {
-                todayCorrectElement.textContent = globalDaily.correct || 0;
+                animateNumber(todayCorrectElement, parseInt(todayCorrectElement.textContent) || 0, daily.correct, 1000);
             }
             
             // 오늘 정답률
             const todayAccuracyElement = document.getElementById('today-accuracy-rate');
             if (todayAccuracyElement) {
-                todayAccuracyElement.textContent = (globalDaily.accuracy || 0) + '%';
+                animateNumber(todayAccuracyElement, parseInt(todayAccuracyElement.textContent) || 0, daily.accuracy, 1000);
+                todayAccuracyElement.textContent = daily.accuracy + '%';
             }
-            
-            console.log(`금일 학습현황: ${globalDaily.attempted}문제, ${globalDaily.correct}정답, ${globalDaily.accuracy}%`);
         }
-
+        
+        // 금일 학습현황 박스 생성
+        function createDailyStatsBox() {
+            const homeScreen = document.getElementById('home-screen');
+            const progressSection = document.querySelector('.bg-white.rounded-lg.shadow-lg.p-6.mb-6:nth-child(4)');
+            
+            if (homeScreen && progressSection) {
+                const dailyStatsBox = document.createElement('div');
+                dailyStatsBox.id = 'daily-learning-stats';
+                dailyStatsBox.className = 'bg-white rounded-lg shadow-lg p-6 mb-6';
+                dailyStatsBox.innerHTML = `
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">금일의 학습 현황</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="today-total-questions">0</div>
+                            <div class="text-sm text-gray-600">오늘 푼 문제수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" id="today-correct-answers">0</div>
+                            <div class="text-sm text-gray-600">오늘 정답수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600" id="today-accuracy-rate">0%</div>
+                            <div class="text-sm text-gray-600">오늘 정답률</div>
+                        </div>
+                    </div>
+                `;
+                
+                // 학습 진도 현황 다음에 삽입
+                progressSection.parentNode.insertBefore(dailyStatsBox, progressSection.nextSibling);
+            }
+        }
         
         // 숫자 애니메이션 함수
         function animateNumber(element, from, to, duration) {
@@ -3915,46 +3672,25 @@
             requestAnimationFrame(updateNumber);
         }
         
-        // 기본학습 통계 업데이트 (Phase 2와 동일한 2단 구조)
+        // 기본학습 통계 업데이트
         function updateBasicLearningStats(stats) {
             const basic = stats.stats.modes.basic;
-            const todayKey = getTodayKey();
             
-            // 누적 현황 업데이트
-            const cumulativeTotalElement = document.getElementById('basic-cumulative-total');
-            const cumulativeCorrectElement = document.getElementById('basic-cumulative-correct');
-            const cumulativeAccuracyElement = document.getElementById('basic-cumulative-accuracy');
+            // 누적 현황
+            const totalElement = document.getElementById('total-questions');
+            const correctElement = document.getElementById('correct-answers');
+            const incorrectElement = document.getElementById('incorrect-answers');
             
-            if (cumulativeTotalElement) {
-                cumulativeTotalElement.textContent = basic.cumulative.attempted || 0;
+            if (totalElement) {
+                animateNumber(totalElement, parseInt(totalElement.textContent) || 0, basic.cumulative.attempted, 1000);
             }
-            if (cumulativeCorrectElement) {
-                cumulativeCorrectElement.textContent = basic.cumulative.correct || 0;
+            if (correctElement) {
+                animateNumber(correctElement, parseInt(correctElement.textContent) || 0, basic.cumulative.correct, 1000);
             }
-            if (cumulativeAccuracyElement) {
-                cumulativeAccuracyElement.textContent = (basic.cumulative.accuracy || 0) + '%';
+            if (incorrectElement) {
+                const incorrect = basic.cumulative.attempted - basic.cumulative.correct;
+                animateNumber(incorrectElement, parseInt(incorrectElement.textContent) || 0, incorrect, 1000);
             }
-            
-            // 금일 현황 업데이트
-            const dailyStats = basic.daily[todayKey] || { attempted: 0, correct: 0, accuracy: 0 };
-            const dailyTotalElement = document.getElementById('basic-daily-total');
-            const dailyCorrectElement = document.getElementById('basic-daily-correct');
-            const dailyAccuracyElement = document.getElementById('basic-daily-accuracy');
-            
-            if (dailyTotalElement) {
-                dailyTotalElement.textContent = dailyStats.attempted || 0;
-            }
-            if (dailyCorrectElement) {
-                dailyCorrectElement.textContent = dailyStats.correct || 0;
-            }
-            if (dailyAccuracyElement) {
-                dailyAccuracyElement.textContent = (dailyStats.accuracy || 0) + '%';
-            }
-            
-            console.log(`기본학습 통계: 누적 ${basic.cumulative.attempted}/${basic.cumulative.correct}(${basic.cumulative.accuracy}%), 금일 ${dailyStats.attempted}/${dailyStats.correct}(${dailyStats.accuracy}%)`);
-            
-            // 상단 통계 업데이트 추가
-            updateBasicLearningTotalSummary(stats);
         }
         
         // 대분류학습 통계 업데이트
@@ -4146,23 +3882,6 @@
             console.log(`대분류 전체 통계: ${totalAttempted}문제, ${totalCorrect}정답, ${totalAccuracy}%`);
         }
         
-        // 기본학습 전체 요약 통계 업데이트
-        function updateBasicLearningTotalSummary(stats) {
-            const totalAttempted = stats.stats.modes.basic.cumulative.attempted || 0;
-            const totalCorrect = stats.stats.modes.basic.cumulative.correct || 0;
-            const totalAccuracy = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0;
-            
-            const totalAttemptedElement = document.getElementById('basic-total-attempted');
-            const totalCorrectElement = document.getElementById('basic-total-correct');
-            const totalAccuracyElement = document.getElementById('basic-total-accuracy');
-            
-            if (totalAttemptedElement) totalAttemptedElement.textContent = totalAttempted;
-            if (totalCorrectElement) totalCorrectElement.textContent = totalCorrect;
-            if (totalAccuracyElement) totalAccuracyElement.textContent = totalAccuracy;
-            
-            console.log(`기본학습 전체 통계: ${totalAttempted}문제, ${totalCorrect}정답, ${totalAccuracy}%`);
-        }
-        
         // 카테고리 버튼 통계 업데이트
         function updateCategoryButtonStats(stats) {
             const categories = ['재산보험', '특종보험', '배상책임보험', '해상보험'];
@@ -4173,48 +3892,25 @@
                     // 누적 통계
                     const cumulativeTotal = categoryStats.cumulative.attempted || 0;
                     const cumulativeCorrect = categoryStats.cumulative.correct || 0;
-                    const cumulativeAccuracy = cumulativeTotal > 0 ? Math.round((cumulativeCorrect / cumulativeTotal) * 100) : 0;
                     
                     // 금일 통계
                     const todayKey = new Date().toISOString().split('T')[0];
                     const dailyStats = categoryStats.daily[todayKey] || { attempted: 0, correct: 0 };
                     const dailyTotal = dailyStats.attempted || 0;
                     const dailyCorrect = dailyStats.correct || 0;
-                    const dailyAccuracy = dailyTotal > 0 ? Math.round((dailyCorrect / dailyTotal) * 100) : 0;
                     
-                    // HTML 업데이트 - 누적 통계 (카테고리 버튼)
-                    const cumulativeTotalButtonElement = document.getElementById(`${category}-button-cumulative-total`);
-                    const cumulativeCorrectButtonElement = document.getElementById(`${category}-button-cumulative-correct`);
-                    
-                    if (cumulativeTotalButtonElement) cumulativeTotalButtonElement.textContent = cumulativeTotal;
-                    if (cumulativeCorrectButtonElement) cumulativeCorrectButtonElement.textContent = cumulativeCorrect;
-                    
-                    // HTML 업데이트 - 금일 통계 (카테고리 버튼)
-                    const dailyTotalButtonElement = document.getElementById(`${category}-button-daily-total`);
-                    const dailyCorrectButtonElement = document.getElementById(`${category}-button-daily-correct`);
-                    
-                    if (dailyTotalButtonElement) dailyTotalButtonElement.textContent = dailyTotal;
-                    if (dailyCorrectButtonElement) dailyCorrectButtonElement.textContent = dailyCorrect;
-                    
-                    // HTML 업데이트 - 통계 컨테이너 (기존 ID 유지)
+                    // HTML 업데이트
                     const cumulativeTotalElement = document.getElementById(`${category}-cumulative-total`);
                     const cumulativeCorrectElement = document.getElementById(`${category}-cumulative-correct`);
-                    const cumulativeAccuracyElement = document.getElementById(`${category}-cumulative-accuracy`);
+                    const dailyTotalElement = document.getElementById(`${category}-daily-total`);
+                    const dailyCorrectElement = document.getElementById(`${category}-daily-correct`);
                     
                     if (cumulativeTotalElement) cumulativeTotalElement.textContent = cumulativeTotal;
                     if (cumulativeCorrectElement) cumulativeCorrectElement.textContent = cumulativeCorrect;
-                    if (cumulativeAccuracyElement) cumulativeAccuracyElement.textContent = cumulativeAccuracy + '%';
-                    
-                    // HTML 업데이트 - 금일 통계 (통계 컨테이너)
-                    const dailyTotalElement = document.getElementById(`${category}-daily-total`);
-                    const dailyCorrectElement = document.getElementById(`${category}-daily-correct`);
-                    const dailyAccuracyElement = document.getElementById(`${category}-daily-accuracy`);
-                    
                     if (dailyTotalElement) dailyTotalElement.textContent = dailyTotal;
                     if (dailyCorrectElement) dailyCorrectElement.textContent = dailyCorrect;
-                    if (dailyAccuracyElement) dailyAccuracyElement.textContent = dailyAccuracy + '%';
                     
-                    console.log(`${category} 통계: 누적 ${cumulativeTotal}/${cumulativeCorrect}(${cumulativeAccuracy}%), 금일 ${dailyTotal}/${dailyCorrect}(${dailyAccuracy}%)`);
+                    console.log(`${category} 통계: 누적 ${cumulativeTotal}/${cumulativeCorrect}, 금일 ${dailyTotal}/${dailyCorrect}`);
                 }
             });
         }
@@ -4977,86 +4673,6 @@
         console.log('  ✅ 데이터 백업/복구 기능');
         console.log('  ✅ 성능 모니터링 및 최적화');
         console.log('  ✅ 오류 처리 및 데이터 무결성 검증');
-        
-        // ===== 코코치 MVP 시뮬레이션 함수 =====
-        
-        // 기본학습 시뮬레이션 함수
-        function simulateBasicAnswer(isCorrect) {
-            console.log(`기본학습 시뮬레이션: ${isCorrect ? '정답' : '오답'}`);
-            
-            // updateAllStatistics 함수 호출
-            updateAllStatistics(isCorrect, 'basic', null);
-            
-            // UI 업데이트
-            const stats = statisticsCache.get();
-            updateBasicLearningStats(stats);
-            
-            // 사용자 알림
-            const message = `기본학습 ${isCorrect ? '정답' : '오답'} 처리 완료!`;
-            console.log(message);
-            
-            // 간단한 알림 표시
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg z-50 text-white ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
-                }
-            }, 3000);
-        }
-        
-        // 대분류학습 시뮬레이션 함수
-        function simulateLargeCategoryAnswer(isCorrect, category) {
-            console.log(`대분류학습 시뮬레이션: ${category} 카테고리, ${isCorrect ? '정답' : '오답'}`);
-            
-            // updateAllStatistics 함수 호출
-            updateAllStatistics(isCorrect, 'large-category', category);
-            
-            // UI 업데이트
-            const stats = statisticsCache.get();
-            updateLargeCategoryStats(stats);
-            updateLargeCategoryTotalSummary(stats);
-            updateCategoryButtonStats(stats);
-            
-            // 사용자 알림
-            const message = `${category} ${isCorrect ? '정답' : '오답'} 처리 완료!`;
-            console.log(message);
-            
-            // 간단한 알림 표시
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg z-50 text-white ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
-                }
-            }, 3000);
-        }
-        
-        // 디버깅용 통계 확인 함수
-        function debugCurrentStats() {
-            const stats = statisticsCache.get();
-            console.log('현재 통계 상태:', stats);
-            return stats;
-        }
-        
-        // 브라우저 콘솔에서 사용할 수 있는 전역 함수들
-        window.simulateBasicAnswer = simulateBasicAnswer;
-        window.simulateLargeCategoryAnswer = simulateLargeCategoryAnswer;
-        window.debugCurrentStats = debugCurrentStats;
-        
-        console.log('🎮 시뮬레이션 함수 준비 완료!');
-        console.log('사용법:');
-        console.log('  simulateBasicAnswer(true)  // 기본학습 정답');
-        console.log('  simulateBasicAnswer(false) // 기본학습 오답');
-        console.log('  simulateLargeCategoryAnswer(true, "재산보험")  // 대분류학습 정답');
-        console.log('  simulateLargeCategoryAnswer(false, "재산보험") // 대분류학습 오답');
-        console.log('  debugCurrentStats() // 현재 통계 상태 확인');
     </script>
     
     <!-- 사용자 설정 모달 -->

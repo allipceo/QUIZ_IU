@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACIU QUIZ 통계 모듈 MVP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl p-8 max-w-3xl w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+            ACIU QUIZ 통계 모듈 MVP 샘플
+        </h1>
+
+        <!-- 요약 통계 현황 섹션 추가 -->
+        <div class="mb-8 p-4 bg-gray-100 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">요약 통계 현황</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-sm text-gray-600">총 푼 문제</div>
+                    <div id="summary-global-attempted" class="text-2xl font-bold text-blue-600">0</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">총 정답</div>
+                    <div id="summary-global-correct" class="text-2xl font-bold text-green-600">0</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">총 정답률</div>
+                    <div id="summary-global-accuracy" class="text-2xl font-bold text-purple-600">0%</div>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                <div>
+                    <div class="text-sm text-gray-600">기본 학습 - 푼 문제</div>
+                    <div id="summary-basic-attempted" class="text-xl font-bold text-blue-500">0</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">기본 학습 - 정답률</div>
+                    <div id="summary-basic-accuracy" class="text-xl font-bold text-purple-500">0%</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">재산보험 - 푼 문제</div>
+                    <div id="summary-재산보험-attempted" class="text-xl font-bold text-blue-500">0</div>
+                </div>
+                <div>
+                    <div class="text-sm text-gray-600">재산보험 - 정답률</div>
+                    <div id="summary-재산보험-accuracy" class="text-xl font-bold text-purple-500">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-800 mb-3">전체 통계 객체 (디버깅용)</h2>
+            <pre id="current-statistics-display" class="bg-blue-100 p-3 rounded-md text-sm text-blue-900 overflow-auto h-64"></pre>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 bg-green-50 rounded-lg">
+                <h3 class="text-lg font-semibold text-green-800 mb-3">기본 학습 시뮬레이션</h3>
+                <button onclick="simulateAnswer(true, 'basic', null)" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md mb-2">
+                    기본학습 정답
+                </button>
+                <button onclick="simulateAnswer(false, 'basic', null)" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">
+                    기본학습 오답
+                </button>
+            </div>
+
+            <div class="p-4 bg-purple-50 rounded-lg">
+                <h3 class="text-lg font-semibold text-purple-800 mb-3">대분류 학습 시뮬레이션 (재산보험)</h3>
+                <button onclick="simulateAnswer(true, 'large-category', '재산보험')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md mb-2">
+                    재산보험 정답
+                </button>
+                <button onclick="simulateAnswer(false, 'large-category', '재산보험')" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-md">
+                    재산보험 오답
+                </button>
+            </div>
+        </div>
+
+        <div class="flex justify-center mt-6">
+            <button onclick="clearAllStatistics()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-md">
+                🗑️ 모든 통계 초기화
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 노팀장님 기획안의 통합 통계 스키마 (unifiedStatisticsSchema)
+        const unifiedStatisticsSchema = {
+            // 메타 정보: 앱 버전, 사용자 등록 시점, 마지막 업데이트 시점, 사용자 이름 등
+            meta: {
+                version: "2.0",
+                registeredAt: null, // 사용자 등록 시점 (ISO String)
+                lastUpdated: null,  // 마지막 통계 업데이트 시점 (ISO String)
+                userName: "조대표님" // 예시 사용자 이름
+            },
+
+            // 모든 통계를 포함하는 'stats' 객체
+            stats: {
+                // 글로벌 통계: 앱 전체에 대한 누적 및 일별 통계
+                global: {
+                    cumulative: { attempted: 0, correct: 0, accuracy: 0 }, // 누적: 시도한 문제, 맞은 문제, 정확도
+                    daily: { attempted: 0, correct: 0, accuracy: 0 }       // 일별: 오늘 시도한 문제, 오늘 맞은 문제, 오늘 정확도
+                },
+
+                // 학습 모드별 통계: 기본학습, 대분류학습 등 각 모드에 대한 통계
+                modes: {
+                    basic: { // 기본학습 모드 통계
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 }
+                    },
+                    largeCategory: { // 대분류학습 모드 통계 (전체 대분류 모드에 대한 합계)
+                        cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                        daily: { attempted: 0, correct: 0, accuracy: 0 },
+
+                        // 대분류 내 개별 카테고리별 통계 (예: 재산보험, 특종보험 등)
+                        categories: {
+                            "재산보험": {
+                                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                                daily: { attempted: 0, correct: 0, accuracy: 0 }
+                            },
+                            "특종보험": {
+                                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                                daily: { attempted: 0, correct: 0, accuracy: 0 }
+                            },
+                            "배상책임보험": {
+                                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                                daily: { attempted: 0, correct: 0, accuracy: 0 }
+                            },
+                            "해상보험": {
+                                cumulative: { attempted: 0, correct: 0, accuracy: 0 },
+                                daily: { attempted: 0, correct: 0, accuracy: 0 }
+                            }
+                        }
+                    }
+                    // 향후 추가될 모드 (예: subCategory, trueFalse, mockTest 등)
+                }
+            },
+
+            // 일별 학습 히스토리: 특정 날짜에 대한 상세 통계 (최근 30일 등 기간 설정 가능)
+            dailyHistory: {}, // 예: {"2025-07-31": { attempted: 10, correct: 7, accuracy: 70 }}
+
+            // 전체 문제 수 캐시: CSV 파일 로드 시 계산하여 저장
+            questionCounts: {
+                "인스교재": 700, // 예시 값 (실제 앱에서는 CSV에서 동적으로 로드)
+                "보험중개사시험": 679, // 예시 값
+                "total": 1379, // 예시 값
+                lastCounted: null // 마지막으로 문제 수를 계산한 시점
+            }
+        };
+
+        // StatisticsCache 클래스: Local Storage와의 데이터 동기화를 효율적으로 관리
+        class StatisticsCache {
+            constructor() {
+                this.cache = null;         // 메모리에 로드된 통계 데이터
+                this.isDirty = false;      // 캐시가 변경되었는지 여부 (저장 필요 여부)
+                this.isInitialized = false; // 캐시가 초기화되었는지 여부
+                this.localStorageKey = 'aciu_statistics'; // Local Storage에 저장될 키
+            }
+
+            // 캐시에서 현재 통계 데이터 가져오기
+            get() {
+                if (!this.isInitialized) {
+                    this.loadFromStorage(); // 초기화되지 않았다면 Local Storage에서 로드 시도
+                }
+                // 캐시가 비어있다면 (Local Storage에도 없다면) 초기 스키마로 생성
+                if (!this.cache) {
+                    this.set(JSON.parse(JSON.stringify(unifiedStatisticsSchema)));
+                    this.cache.meta.registeredAt = new Date().toISOString(); // 최초 등록 시점 기록
+                    this.flush(); // 즉시 저장
+                }
+                return this.cache;
+            }
+
+            // 캐시에 새 통계 데이터 설정
+            set(data) {
+                this.cache = data;
+                this.isDirty = true; // 데이터가 변경되었음을 표시
+                this.isInitialized = true;
+            }
+
+            // 변경된 캐시 데이터를 Local Storage에 저장
+            flush() {
+                if (this.isDirty && this.cache) {
+                    try {
+                        this.cache.meta.lastUpdated = new Date().toISOString(); // 마지막 업데이트 시점 갱신
+                        localStorage.setItem(this.localStorageKey, JSON.stringify(this.cache));
+                        this.isDirty = false; // 저장이 완료되었으므로 'dirty' 상태 해제
+                        console.log('✅ 통계 데이터 Local Storage에 저장 완료');
+                        return true;
+                    } catch (error) {
+                        console.error('❌ 통계 데이터 Local Storage 저장 실패:', error);
+                        this.showUserNotification('통계 데이터 저장 중 오류가 발생했습니다.');
+                        return false;
+                    }
+                }
+                return true; // 변경 사항이 없거나 캐시가 비어있다면 저장할 필요 없음
+            }
+
+            // Local Storage에서 통계 데이터 로드
+            loadFromStorage() {
+                try {
+                    const data = localStorage.getItem(this.localStorageKey);
+                    if (data) {
+                        this.cache = JSON.parse(data);
+                        console.log('✅ 통계 데이터 Local Storage에서 로드 완료');
+                    } else {
+                        this.cache = null; // 저장된 데이터가 없음을 표시
+                        console.log('ℹ️ 저장된 통계 데이터 없음');
+                    }
+                    this.isInitialized = true;
+                } catch (error) {
+                    console.error('❌ 통계 데이터 Local Storage 로드 실패:', error);
+                    this.cache = null; // 로드 실패 시 캐시 초기화
+                    this.isInitialized = true;
+                    this.showUserNotification('통계 데이터 로드 중 오류가 발생했습니다. 데이터가 손상되었을 수 있습니다.');
+                }
+            }
+
+            // 캐시를 무효화하고 초기 상태로 되돌림 (강제 초기화 시 사용)
+            invalidate() {
+                this.cache = null;
+                this.isDirty = false;
+                this.isInitialized = false;
+            }
+
+            // 사용자 알림 메시지 표시 (alert 대신 사용)
+            showUserNotification(message, type = 'error') {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg z-50 text-white ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 5000);
+            }
+        }
+
+        // 전역 StatisticsCache 인스턴스 생성
+        const statisticsCache = new StatisticsCache();
+
+        // 유틸리티 함수: 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+        function getTodayKey() {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        }
+
+        // 유틸리티 함수: 정확도 계산 (0으로 나누는 경우 방지)
+        function calculateAccuracy(correct, total) {
+            if (total === 0) return 0;
+            return Math.round((correct / total) * 100);
+        }
+
+        // 통계 초기화: 앱 시작 시 또는 전체 초기화 시 호출
+        function initializeStatistics() {
+            console.log('=== 통계 시스템 초기화 시작 ===');
+            statisticsCache.get(); // 캐시 로드 또는 초기화 시도
+            displayCurrentStats(); // 전체 통계 객체 표시 (디버깅용)
+            updateSummarizedStatsDisplay(); // 요약 통계 UI 업데이트
+            console.log('=== 통계 시스템 초기화 완료 ===');
+        }
+
+        // 모든 통계 데이터 초기화: Local Storage 데이터 삭제 후 재초기화
+        function clearAllStatistics() {
+            // confirm 대신 StatisticsCache의 showUserNotification 사용
+            statisticsCache.showUserNotification('정말로 모든 학습 통계를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.', 'confirm'); // 'confirm' 타입은 사용자에게 확인을 요청하는 메시지 (실제 구현 시 커스텀 모달 필요)
+
+            // 실제 초기화 로직은 사용자 확인 후 실행되어야 합니다.
+            // 여기서는 단순화하여 바로 실행합니다. 실제 앱에서는 커스텀 모달의 '확인' 버튼에 이 로직을 연결합니다.
+            console.log('=== 모든 통계 데이터 초기화 시작 ===');
+            localStorage.removeItem(statisticsCache.localStorageKey); // Local Storage에서 데이터 삭제
+            statisticsCache.invalidate(); // 캐시 무효화
+            initializeStatistics(); // 새로운 통계 데이터로 재초기화
+            statisticsCache.showUserNotification('모든 통계 데이터가 초기화되었습니다.', 'info');
+            console.log('=== 모든 통계 데이터 초기화 완료 ===');
+        }
+
+        // 핵심 함수: 문제 풀이 결과에 따라 모든 관련 통계 업데이트
+        function updateAllStatistics(isCorrect, mode, category = null) {
+            console.log(`=== 통계 업데이트 시작: 정답여부=${isCorrect}, 모드=${mode}, 카테고리=${category} ===`);
+            const stats = statisticsCache.get(); // 현재 통계 데이터 가져오기 (없으면 초기화)
+            const todayKey = getTodayKey(); // 오늘 날짜 키
+
+            // 1. 글로벌 통계 업데이트 (누적)
+            stats.stats.global.cumulative.attempted++;
+            if (isCorrect) {
+                stats.stats.global.cumulative.correct++;
+            }
+            stats.stats.global.cumulative.accuracy = calculateAccuracy(
+                stats.stats.global.cumulative.correct,
+                stats.stats.global.cumulative.attempted
+            );
+
+            // 2. 글로벌 통계 업데이트 (일별) - dailyHistory와 연동
+            if (!stats.dailyHistory[todayKey]) {
+                stats.dailyHistory[todayKey] = { attempted: 0, correct: 0, accuracy: 0 };
+            }
+            stats.dailyHistory[todayKey].attempted++;
+            if (isCorrect) {
+                stats.dailyHistory[todayKey].correct++;
+            }
+            stats.dailyHistory[todayKey].accuracy = calculateAccuracy(
+                stats.dailyHistory[todayKey].correct,
+                stats.dailyHistory[todayKey].attempted
+            );
+            // 글로벌 일별 통계는 dailyHistory의 오늘 데이터와 동기화
+            stats.stats.global.daily = stats.dailyHistory[todayKey];
+
+
+            // 3. 모드별 통계 업데이트
+            if (mode === 'basic') {
+                stats.stats.modes.basic.cumulative.attempted++;
+                if (isCorrect) {
+                    stats.stats.modes.basic.cumulative.correct++;
+                }
+                stats.stats.modes.basic.cumulative.accuracy = calculateAccuracy(
+                    stats.stats.modes.basic.cumulative.correct,
+                    stats.stats.modes.basic.cumulative.attempted
+                );
+                // 기본학습 일별 통계도 dailyHistory와 연동 (또는 별도 관리 가능)
+                if (!stats.stats.modes.basic.daily) {
+                     stats.stats.modes.basic.daily = { attempted: 0, correct: 0, accuracy: 0 };
+                }
+                stats.stats.modes.basic.daily.attempted++;
+                if (isCorrect) {
+                    stats.stats.modes.basic.daily.correct++;
+                }
+                stats.stats.modes.basic.daily.accuracy = calculateAccuracy(
+                    stats.stats.modes.basic.daily.correct,
+                    stats.stats.modes.basic.daily.attempted
+                );
+
+            } else if (mode === 'large-category') {
+                stats.stats.modes.largeCategory.cumulative.attempted++;
+                if (isCorrect) {
+                    stats.stats.modes.largeCategory.cumulative.correct++;
+                }
+                stats.stats.modes.largeCategory.cumulative.accuracy = calculateAccuracy(
+                    stats.stats.modes.largeCategory.cumulative.correct,
+                    stats.stats.modes.largeCategory.cumulative.attempted
+                );
+                // 대분류학습 일별 통계도 dailyHistory와 연동 (또는 별도 관리 가능)
+                if (!stats.stats.modes.largeCategory.daily) {
+                    stats.stats.modes.largeCategory.daily = { attempted: 0, correct: 0, accuracy: 0 };
+                }
+                stats.stats.modes.largeCategory.daily.attempted++;
+                if (isCorrect) {
+                    stats.stats.modes.largeCategory.daily.correct++;
+                }
+                stats.stats.modes.largeCategory.daily.accuracy = calculateAccuracy(
+                    stats.stats.modes.largeCategory.daily.correct,
+                    stats.stats.modes.largeCategory.daily.attempted
+                );
+
+                // 4. 특정 대분류 카테고리 통계 업데이트
+                if (category && stats.stats.modes.largeCategory.categories[category]) {
+                    const categoryStats = stats.stats.modes.largeCategory.categories[category];
+                    categoryStats.cumulative.attempted++;
+                    if (isCorrect) {
+                        categoryStats.cumulative.correct++;
+                    }
+                    categoryStats.cumulative.accuracy = calculateAccuracy(
+                        categoryStats.cumulative.correct,
+                        categoryStats.cumulative.attempted
+                    );
+                    // 카테고리 일별 통계도 dailyHistory와 연동 (또는 별도 관리 가능)
+                    if (!categoryStats.daily) {
+                        categoryStats.daily = { attempted: 0, correct: 0, accuracy: 0 };
+                    }
+                    categoryStats.daily.attempted++;
+                    if (isCorrect) {
+                        categoryStats.daily.correct++;
+                    }
+                    categoryStats.daily.accuracy = calculateAccuracy(
+                        categoryStats.daily.correct,
+                        categoryStats.daily.attempted
+                    );
+                }
+            }
+
+            // 변경된 통계 데이터를 캐시에 설정하고 Local Storage에 저장
+            statisticsCache.set(stats);
+            statisticsCache.flush();
+
+            displayCurrentStats(); // 전체 통계 객체 UI 업데이트 (디버깅용)
+            updateSummarizedStatsDisplay(); // 요약 통계 UI 업데이트
+            console.log('=== 통계 업데이트 완료 ===');
+        }
+
+        // 현재 통계 현황을 UI에 표시 (전체 객체)
+        function displayCurrentStats() {
+            const stats = statisticsCache.get();
+            const displayElement = document.getElementById('current-statistics-display');
+            if (displayElement) {
+                // JSON.stringify의 세 번째 인자는 들여쓰기 칸 수
+                displayElement.textContent = JSON.stringify(stats, null, 2);
+            }
+        }
+
+        // 요약 통계 현황을 UI에 표시 (새로 추가된 함수)
+        function updateSummarizedStatsDisplay() {
+            const stats = statisticsCache.get();
+            if (!stats) return;
+
+            // 글로벌 통계 업데이트
+            document.getElementById('summary-global-attempted').textContent = stats.stats.global.cumulative.attempted;
+            document.getElementById('summary-global-correct').textContent = stats.stats.global.cumulative.correct;
+            document.getElementById('summary-global-accuracy').textContent = stats.stats.global.cumulative.accuracy + '%';
+
+            // 기본 학습 통계 업데이트
+            document.getElementById('summary-basic-attempted').textContent = stats.stats.modes.basic.cumulative.attempted;
+            document.getElementById('summary-basic-accuracy').textContent = stats.stats.modes.basic.cumulative.accuracy + '%';
+
+            // 재산보험 통계 업데이트 (예시 카테고리)
+            const 재산보험Stats = stats.stats.modes.largeCategory.categories["재산보험"];
+            if (재산보험Stats) {
+                document.getElementById('summary-재산보험-attempted').textContent = 재산보험Stats.cumulative.attempted;
+                document.getElementById('summary-재산보험-accuracy').textContent = 재산보험Stats.cumulative.accuracy + '%';
+            }
+        }
+
+        // 시뮬레이션 버튼 클릭 핸들러
+        function simulateAnswer(isCorrect, mode, category) {
+            updateAllStatistics(isCorrect, mode, category);
+            statisticsCache.showUserNotification(`${mode} 모드 (${category ? category + ', ' : ''})${isCorrect ? '정답' : '오답'} 처리 완료!`, 'info');
+        }
+
+        // DOMContentLoaded 이벤트 리스너: 페이지 로드 완료 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeStatistics(); // 통계 시스템 초기화
+        });
+    </script>
+</body>
+</html>
